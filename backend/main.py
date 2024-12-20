@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from roboflow import Roboflow
 
-my_api_key = "1QPRCk6s4gNJxqag7zRn";
+my_api_key = "";
 
 def detect_foam_line(grayscale_image):
     """
