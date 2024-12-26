@@ -1,8 +1,12 @@
 import cv2
 import numpy as np
+from dotenv import load_dotenv
+load_dotenv()
+import os
 from roboflow import Roboflow
 
-my_api_key = "";
+
+
 
 def detect_foam_line(grayscale_image):
     """
@@ -64,8 +68,8 @@ def calculate_foam_score(foam_line_y, g_top, g_bottom):
     print(f"Foam Line Y: {foam_line_y}, G Center Y: {g_center_y}, Score: {score:.2f}")
     return score
 
-def run_robo_flow():
-    rf = Roboflow(api_key=my_api_key)
+def run_robo_flow(image_path, robo_api_key):
+    rf = Roboflow(api_key=robo_api_key)
     project = rf.workspace().project("findtheg")
     model = project.version(1).model
 
@@ -74,6 +78,9 @@ def run_robo_flow():
 
     # Load the original image for visualization
     image = cv2.imread(image_path)
+    if image is None:
+        raise ValueError("Invalid image format")
+
 
     # Extract the bounding box for the "G"
     for prediction in predictions['predictions']:
@@ -86,7 +93,6 @@ def run_robo_flow():
 
             # Crop the "G" region
             roi = image[y1:y2, x1:x2]  # Region of interest (the G)
-            cv2.imwrite("cropped.png", roi);
 
             # Detect the foam line in the cropped region
             foam_line_y = detect_foam_line(cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY))
@@ -99,24 +105,20 @@ def run_robo_flow():
                 distance = abs(foam_line_y - g_center_y)
                 print(f"Distance from foam line to center of G: {distance}")
 
-                # Draw the foam line on the original image
-                cv2.line(image, (x1, foam_line_y + y1), (x2, foam_line_y + y1), (255, 0, 0), 2)
-                cv2.putText(image, "Foam Line", (x1, foam_line_y + y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
+                # # Draw the foam line on the original image
+                # cv2.line(image, (x1, foam_line_y + y1), (x2, foam_line_y + y1), (255, 0, 0), 2)
+                # cv2.putText(image, "Foam Line", (x1, foam_line_y + y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
 
                 score = calculate_foam_score(foam_line_y + y1, y1, y2)
-                cv2.line(image, (x1, foam_line_y + y1), (x2, foam_line_y + y1), (255, 0, 0), 2)
-                cv2.putText(image, f"Foam Score: {score:.2f}", (50, 50), cv2.QT_FONT_BLACK, 1, (255, 255, 255), 2)
+                print('score of guiness in functions')
+                print(score)
+                return {
+                    "status": "success",
+                    "score": score
+                }
             else:
                 print("Foam line not detected.")
-            break
+                raise ValueError("No foam line detected")            
+    raise ValueError("G_logo not detected in the image.")
 
-    # Save and show the result
-    output_path = "guinness_with_foam_line.jpg"
-    cv2.imwrite(output_path, image)
-    cv2.imshow("Result", image)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
 
-# Paths to your sample image and 'G' template
-image_path = "anotherone.jpg"   # Replace with path to your image
-run_robo_flow()

@@ -1,0 +1,8 @@
+opencv-python
+numpy
+roboflow
+fastapi
+pydantic
+uvicorn
+requests
+node-fetch
