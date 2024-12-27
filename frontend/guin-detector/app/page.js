@@ -1,56 +1,116 @@
-import Image from "next/image";
-import SignIn from "./components/signin";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Beer, Timer, Camera, Trophy, ArrowRight } from "lucide-react";
+import Link from "next/link";
+
+const features = [
+  {
+    icon: Timer,
+    title: "Time Your Sip",
+    description: "Start the timer as you begin your sip. Take your time - the perfect pour is an art!"
+  },
+  {
+    icon: Camera,
+    title: "Capture the Moment",
+    description: "After your sip, quickly snap a photo of your glass showing where the foam line intersects with the Guinness logo."
+  },
+  {
+    icon: Trophy,
+    title: "Get Your Score",
+    description: "Our AI analyzes how perfectly you've split the 'G' in the Guinness logo and gives you a precision score."
+  }
+];
+
 export default function Home() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm">
-        <h1 className="text-4xl font-bold text-center mb-8">Guinness Line Detector</h1>
-        
-        <div className="bg-white/30 p-8 rounded-lg backdrop-blur-sm">
-          <h2 className="text-2xl font-semibold mb-4">Perfect Pour Analyzer</h2>
-          <p className="mb-6">
-            Ever wondered if you've mastered the perfect Guinness pour? Our app helps you:
-          </p>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <div className="p-4 bg-black/5 rounded-lg">
-            
-              <h3 className="font-bold mb-2">Scan Your Pour</h3>
-              <p>Upload a photo of your Guinness and let our AI analyze the line</p>
-            </div>
-            
-            <div className="p-4 bg-black/5 rounded-lg">
-              <h3 className="font-bold mb-2">Get Your Score</h3>
-              <p>Receive instant feedback on how well you split the G</p>
-            </div>
-            
-            <div className="p-4 bg-black/5 rounded-lg">
-              <h3 className="font-bold mb-2">Track Progress</h3>
-              <p>Monitor your pouring skills over time and compete with friends</p>
-            </div>
+    <main className="flex flex-col items-center min-h-screen">
+      {/* Hero Section */}
+      <section className="w-full bg-black text-white py-20 px-4">
+        <div className="max-w-5xl mx-auto text-center space-y-6">
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <Beer className="h-12 w-12 text-[#FFC107]" />
+            <h1 className="text-5xl font-bold">Split The G</h1>
           </div>
+          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
+            Master the perfect Guinness sip by hitting the sweet spot - where the foam line perfectly splits the 'G' in the Guinness logo. Challenge your friends and perfect your technique!
+          </p>
+          <Link href="/scan">
+            <Button className="bg-[#FFC107] text-black hover:bg-[#ffd454] mt-6 text-lg px-8 py-6">
+              Start Challenge
+              <ArrowRight className="ml-2" />
+            </Button>
+          </Link>
+        </div>
+      </section>
 
-          <SignIn />
+      {/* How It Works Section */}
+      <section className="py-16 px-4 w-full max-w-6xl mx-auto">
+        <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
+        <div className="grid md:grid-cols-3 gap-8">
+          {features.map((feature, index) => (
+            <Card key={index} className="border-2">
+              <CardHeader className="text-center">
+                <div className="mx-auto bg-black rounded-full p-3 w-fit mb-4">
+                  <feature.icon className="h-8 w-8 text-[#FFC107]" />
+                </div>
+                <CardTitle className="text-xl">{feature.title}</CardTitle>
+              </CardHeader>
+              <CardContent className="text-center text-gray-600">
+                {feature.description}
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </section>
 
-          <div className="text-center">
-            <button className="bg-black text-white px-8 py-3 rounded-full hover:bg-gray-800 transition-colors">
-              Start Scanning
-            </button>
+      {/* Scoring Section */}
+      <section className="w-full bg-gray-50 py-16 px-4">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+          <h2 className="text-3xl font-bold">The Perfect Split</h2>
+          <div className="grid md:grid-cols-2 gap-8">
+            <Card className="bg-white">
+              <CardHeader>
+                <CardTitle className="text-xl">Precision Score</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-4xl font-bold text-[#FFC107]">0-100%</div>
+                <p className="text-gray-600">
+                  Get scored on how accurately you split the 'G' in the Guinness logo. The closer to the middle, the higher your score!
+                </p>
+              </CardContent>
+            </Card>
+            <Card className="bg-white">
+              <CardHeader>
+                <CardTitle className="text-xl">Time Challenge</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="text-4xl font-bold text-[#FFC107]">
+                  <span className="font-mono">0.00s</span>
+                </div>
+                <p className="text-gray-600">
+                  Track your sip time with millisecond precision. Compare with friends to find the perfect balance of speed and accuracy!
+                </p>
+              </CardContent>
+            </Card>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="relative mt-16">
-        <Image
-          src="/guinness-pour.jpg"
-          alt="Perfect Guinness Pour"
-          width={400}
-          height={300}
-          className="rounded-lg shadow-lg"
-          priority
-        />
-      </div>
+      {/* CTA Section */}
+      <section className="w-full py-16 px-4 text-center">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <h2 className="text-3xl font-bold">Ready to Perfect Your Pour?</h2>
+          <p className="text-gray-600">
+            Join the community of Guinness enthusiasts and start tracking your progress today.
+          </p>
+          <Link href="/scan">
+            <Button className="bg-black text-white hover:bg-gray-800 mt-4">
+              Take the Challenge
+              <ArrowRight className="ml-2" />
+            </Button>
+          </Link>
+        </div>
+      </section>
     </main>
-
   );
 }
