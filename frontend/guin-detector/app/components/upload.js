@@ -1,13 +1,11 @@
-"use client"
+"use client";
 
-import { useState, useRef } from 'react';
-import { useSession } from 'next-auth/react';
+import { useState, useRef } from "react";
 
-export default function Upload() {
+export default function Upload({ onImageUploaded, isLoading }) {
   const [imagePreview, setImagePreview] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
-  const { data: session } = useSession();
 
   const handleCapture = (e) => {
     const file = e.target.files[0];
@@ -20,23 +18,9 @@ export default function Upload() {
     }
   };
 
-  const handleUpload = async () => {
-    if (!imagePreview || !session) return;
-
-    setIsUploading(true);
-    try {
-      //call the process api in next route
-      
-      const response = await fetch('/api/process', {
-        method: 'POST',
-        body: JSON.stringify({ image: imagePreview })
-      });
-      const result = await response.json();
-      console.log(result);
-    } catch (error) {
-      console.error('Error uploading image:', error);
-    } finally {
-      setIsUploading(false);
+  const handleConfirm = () => {
+    if (imagePreview) {
+      onImageUploaded(imagePreview); // Pass the image data to the parent
     }
   };
 
@@ -45,9 +29,9 @@ export default function Upload() {
       <div className="w-full max-w-md">
         {imagePreview ? (
           <div className="relative">
-            <img 
-              src={imagePreview} 
-              alt="Preview" 
+            <img
+              src={imagePreview}
+              alt="Preview"
               className="w-full rounded-lg shadow-lg"
             />
             <button
@@ -80,13 +64,13 @@ export default function Upload() {
 
       {imagePreview && (
         <button
-          onClick={handleUpload}
-          disabled={isUploading}
+          onClick={handleConfirm}
+          disabled={isLoading}
           className={`bg-black text-white px-8 py-3 rounded-full transition-colors ${
-            isUploading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'
+            isLoading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-800"
           }`}
         >
-          {isUploading ? 'Uploading...' : 'Upload Image'}
+           {isLoading ? "Uploading..." : "Confirm and Analyze!"}
         </button>
       )}
     </div>

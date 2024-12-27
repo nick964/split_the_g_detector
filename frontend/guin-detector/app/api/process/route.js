@@ -30,7 +30,9 @@ export async function POST(request) {
 
     // Get the form data from the request
     const body = await request.json();
-    const { image } = body;
+
+    const { image, time } = body;
+    console.log('logging time', time);
 
     
     if (!image) {
@@ -60,7 +62,7 @@ export async function POST(request) {
 
     // Get the download URL of the uploaded image
     const url = await getDownloadURL(uploadTask.snapshot.ref);
-    
+
     // Call external image analysis API
     const analyzeResponse = await fetch(
       'https://analyze-image-nwfcxhboma-uc.a.run.app/guin-line-detector/us-central1/analyze_image',
@@ -89,7 +91,8 @@ export async function POST(request) {
       userId: session.user.email,
       url,
       timestamp: new Date().toISOString(),
-      score: analyzeResult.score
+      score: analyzeResult.score,
+      sipLength: time
     };
 
     await addDoc(guinnessCollectionRef, guinnessDoc);
