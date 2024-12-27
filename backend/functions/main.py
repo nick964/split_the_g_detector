@@ -45,7 +45,7 @@ def analyze_image(req: https_fn.Request) -> https_fn.Response:
             tmp_path = tmp.name
 
         # Analyze the image using `run_robo_flow`
-        result = run_robo_flow(tmp_path, ROBO_FLOW_API_KEY.value)
+        result = run_robo_flow(tmp_path, image_url, ROBO_FLOW_API_KEY.value)
         print('printing response in controller')
         print(result)
 

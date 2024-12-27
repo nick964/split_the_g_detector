@@ -4,6 +4,7 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../../lib/firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
 import fetch from 'node-fetch';
+const apiKey = process.env.NEXT_PUBLIC_GUINESS_API_KEY;
 
 function base64ToUint8Array(base64) {
   const binaryString = atob(base64); // Decode Base64 string to binary
@@ -59,13 +60,13 @@ export async function POST(request) {
 
     // Get the download URL of the uploaded image
     const url = await getDownloadURL(uploadTask.snapshot.ref);
-
+    
     // Call external image analysis API
     const analyzeResponse = await fetch(
       'https://analyze-image-nwfcxhboma-uc.a.run.app/guin-line-detector/us-central1/analyze_image',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'API-Key': apiKey },
         body: JSON.stringify({ url: url }),
       }
     );
