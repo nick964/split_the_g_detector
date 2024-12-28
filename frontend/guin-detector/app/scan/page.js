@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Upload from "../components/upload";
 import GuinnessTimer from "../components/GuinnessTimer";
+import AnalysisLoader from "../components/AnalysisLoader";
 import { Beer, XCircle } from "lucide-react";
 
 function ProcessPageContent() {
@@ -121,6 +122,7 @@ function ProcessPageContent() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
+        {loading && <AnalysisLoader/>}
         {error && (
           <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center justify-between">
             <div className="flex items-center">
