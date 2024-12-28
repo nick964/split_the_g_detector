@@ -108,7 +108,7 @@ export async function POST(request) {
   } catch (error) {
     console.error('Error processing image:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Error occurred when processing image. Please Try Uploading again' },
       { status: 500 }
     );
   }

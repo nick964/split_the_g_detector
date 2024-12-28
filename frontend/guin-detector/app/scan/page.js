@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import Upload from "../components/upload";
 import GuinnessTimer from "../components/GuinnessTimer";
-import { Beer } from "lucide-react";
+import { Beer, XCircle } from "lucide-react";
 
 function ProcessPageContent() {
   const { data: session, status } = useSession();
@@ -16,6 +16,8 @@ function ProcessPageContent() {
   const [currentTime, setCurrentTime] = useState(0);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [loading, setLoading] = useState(false); // Add loading state
+  const [error, setError] = useState(null);
+
 
   useEffect(() => {
     let interval;
@@ -33,10 +35,18 @@ function ProcessPageContent() {
     return `${seconds}.${milliseconds.toString().padStart(2, '0')}s`;
   };
 
+  const handleTryAgain = () => {
+    setIsRecording(false);
+    setShowUpload(false);
+    setAnalysisResult(null);
+    setError(null);
+  };
+
   const handleStart = () => {
     setIsRecording(true);
     setShowUpload(false);
     setAnalysisResult(null);
+    setError(null);
   };
 
   const handleStop = () => {
@@ -50,6 +60,7 @@ function ProcessPageContent() {
 
   const handleImageUploaded = async (imageData) => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/process", {
         method: "POST",
@@ -64,13 +75,29 @@ function ProcessPageContent() {
       });
 
       const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to process image');
+      }
+
+      if (!result.analsis?.score) {
+        throw new Error('Invalid analysis result received');
+      }
+
       setAnalysisResult(result);
       setShowUpload(false);
     } catch (error) {
       console.error("Error analyzing image:", error);
+      setError(error.message || 'Failed to process image. Please try again')
+      setShowUpload(true);
+      setAnalysisResult(null);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDismissError = () => {
+    setError(null);
   };
 
   if (status === "loading") {
@@ -94,6 +121,20 @@ function ProcessPageContent() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-2xl">
+        {error && (
+          <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg flex items-center justify-between">
+            <div className="flex items-center">
+              <XCircle className="h-5 w-5 mr-2" />
+              <span>{error}</span>
+            </div>
+            <button
+              onClick={handleDismissError}
+              className="text-red-700 hover:text-red-900"
+            >
+              ×
+            </button>
+          </div>
+        )}
       <Card className="w-full">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
@@ -149,7 +190,7 @@ function ProcessPageContent() {
             </div>
           )}
 
-          {analysisResult && (
+          {!error && analysisResult && (
             <div className="text-center space-y-4">
               <h3 className="text-xl font-bold">Results</h3>
               <div className="bg-gray-50 p-6 rounded-lg">
@@ -160,7 +201,7 @@ function ProcessPageContent() {
                 <p className="mt-4">Time: {formatTime(currentTime)}</p>
               </div>
               <Button
-                onClick={handleStart}
+                onClick={handleTryAgain}
                 className="bg-[#FFC107] text-black hover:bg-[#ffd454]"
               >
                 Try Again
