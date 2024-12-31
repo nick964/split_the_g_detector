@@ -63,3 +63,6 @@ def analyze_image(req: https_fn.Request) -> https_fn.Response:
         return https_fn.Response(f"Error analyzing image: {e}", status=400)
     except Exception as e:
         return https_fn.Response(f"Unexpected error: {e}", status=500)
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.remove(tmp_path)
