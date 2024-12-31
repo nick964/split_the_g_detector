@@ -133,43 +133,43 @@ function LeaderboardPage() {
         <div className="grid gap-4">
           {leaderboardData.map((pour, index) => (
             <Card key={index} className="overflow-hidden">
-              <div className="flex items-stretch">
-                {/* Medal/Rank */}
-                <div className={`flex items-center justify-center w-16 ${index < 3 ? 'bg-black' : 'bg-gray-100'}`}>
-                  <Medal className={`h-8 w-8 ${getMedalColor(index)}`} />
-                </div>
-
-                {/* Pour Image */}
-                <div className="w-32 h-32">
-                  <img
-                    src={pour.url}
-                    alt={`Pour by ${pour.userName}`}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-
-                {/* Details */}
-                <CardContent className="flex-1 p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <img
-                        src={pour.userImage}
-                        alt={pour.userName}
-                        className="w-8 h-8 rounded-full"
-                      />
-                      <span className="font-semibold">{pour.userName}</span>
+                <div className="flex h-full">
+                    {/* Medal/Rank */}
+                    <div className={`flex items-center justify-center w-16 ${index < 3 ? 'bg-black' : 'bg-gray-100'}`}>
+                    <Medal className={`h-8 w-8 ${getMedalColor(index)}`} />
                     </div>
-                    <div className="text-2xl font-bold text-[#FFC107]">
-                      {(pour.score * 100).toFixed(1)}%
+
+                    {/* Pour Image */}
+                    <div className="w-24 sm:w-32 relative">
+                    <img
+                        src={pour.url}
+                        alt={`Pour by ${pour.userName}`}
+                        className="absolute inset-0 w-full h-full object-cover"
+                    />
                     </div>
-                  </div>
-                  <div className="flex justify-between text-sm text-gray-500">
-                    <span>{new Date(pour.timestamp).toLocaleDateString()}</span>
-                    <span>Time: {formatTime(pour.sipLength)}</span>
-                  </div>
-                </CardContent>
-              </div>
-            </Card>
+
+                    {/* Details */}
+                    <CardContent className="flex-1 p-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                        <img
+                            src={pour.userImage}
+                            alt={pour.userName}
+                            className="w-8 h-8 rounded-full flex-shrink-0"
+                        />
+                        <span className="font-semibold truncate">{pour.userName}</span>
+                        </div>
+                        <div className="text-2xl font-bold text-[#FFC107] flex-shrink-0">
+                        {(pour.score * 100).toFixed(1)}%
+                        </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row justify-between text-sm text-gray-500 gap-1">
+                        <span>{new Date(pour.timestamp).toLocaleDateString()}</span>
+                        <span className="flex-shrink-0">Time: {formatTime(pour.sipLength)}</span>
+                    </div>
+                    </CardContent>
+                </div>
+                </Card>
           ))}
 
           {leaderboardData.length === 0 && (
