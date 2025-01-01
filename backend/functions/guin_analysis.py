@@ -34,7 +34,26 @@ def detect_foam_line(grayscale_image, x1, y1, y2):
 
     # Save the narrow column for debugging
     cv2.imwrite("narrow_column_debug.jpg", narrow_column)
+    
+    # Step 1: Calculate the vertical intensity profile
+    vertical_profile = np.mean(narrow_column, axis=1)
 
+    # Step 2: Calculate intensity gradient
+    gradient = np.abs(np.diff(vertical_profile))
+
+    # Save the gradient as an image for debugging
+    gradient_image = np.expand_dims(gradient, axis=1)
+    cv2.imwrite("gradient_debug.jpg", gradient_image)
+
+    # Step 3: Check for a significant jump
+    max_gradient = np.max(gradient)
+    gradient_threshold = 40  # Adjust this threshold based on your data
+    print(f"Max Gradient: {max_gradient:.2f}")
+
+    if max_gradient < gradient_threshold:
+        print("No significant intensity jump detected. Likely all foam or all beer.")
+        raise ValueError("No significant intensity variation detected. Likely all foam or all beer.")
+    
     # Apply Gaussian Blur to smooth out noise
     blurred_column = cv2.GaussianBlur(narrow_column, (3, 3), 0)
 
@@ -43,6 +62,7 @@ def detect_foam_line(grayscale_image, x1, y1, y2):
 
     # Save the binary column for debugging
     cv2.imwrite("binary_column_debug.jpg", binary_column)
+    
 
     # Calculate the vertical intensity profile (average across the 5-pixel width)
     binary_profile = np.mean(binary_column, axis=1)
