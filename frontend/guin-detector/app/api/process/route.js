@@ -107,6 +107,14 @@ export async function POST(request) {
 
   } catch (error) {
     console.error('Error processing image:', error);
+    if (storageRef) {
+      try {
+        await deleteObject(storageRef);
+        console.log('Uploaded image deleted successfully');
+      } catch (deleteError) {
+        console.error('Error deleting uploaded image:', deleteError);
+      }
+    }
     return NextResponse.json(
       { error: 'Error occurred when processing image. Please Try Uploading again' },
       { status: 500 }
