@@ -1,13 +1,52 @@
 import NextAuth from "next-auth";
 import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from '../../../../lib/firebase';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { compare, hash } from "bcryptjs";
 
 const handler = NextAuth({
   providers: [
     GoogleProvider({
       clientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
       clientSecret: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_SECRET,
+    }),
+    CredentialsProvider({
+      name: "Email and Password",
+      credentials: {
+        email: { label: "Email", type: "text", placeholder: "email@example.com" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const { email, password } = credentials;
+        try {
+          // Fetch user from Firestore
+          const userDoc = doc(db, "users", email);
+          const userSnapshot = await getDoc(userDoc);
+
+          if (!userSnapshot.exists()) {
+            throw new Error("No user found with this email");
+          }
+
+          const userData = userSnapshot.data();
+
+          // Compare passwords
+          const passwordMatch = await compare(password, userData.password);
+          if (!passwordMatch) {
+            throw new Error("Incorrect password");
+          }
+
+          // Return user object for session
+          return {
+            id: userData.email,
+            name: userData.name,
+            email: userData.email,
+          };
+        } catch (error) {
+          console.error("Login error:", error);
+          throw new Error("Invalid credentials");
+        }
+      },
     }),
   ],
   secret: process.env.NEXTAUTH_SECRET,

@@ -12,7 +12,7 @@ export function Navbar() {
   const [isOpen, setIsOpen] = useState(false);
 
   const handleLogin = () => {
-    signIn('google');
+    signIn();
   };
 
   const handleLogout = () => {

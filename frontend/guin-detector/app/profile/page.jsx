@@ -185,7 +185,7 @@ function ProfilePageContent() {
           <h2 className="text-2xl font-bold">Recent Pours</h2>
           <Link href="/scan">
             <Button className="bg-[#FFC107] text-black hover:bg-[#ffd454]">
-              New Pour
+              Scan Split
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
@@ -225,7 +225,7 @@ function ProfilePageContent() {
             <p className="text-gray-500">No pours recorded yet. Time to start pouring!</p>
             <Link href="/scan">
               <Button className="mt-4 bg-[#FFC107] text-black hover:bg-[#ffd454]">
-                Take Your First Pour
+                Scan your First Split
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

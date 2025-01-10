@@ -8,6 +8,7 @@ import Upload from "../components/upload";
 import GuinnessTimer from "../components/GuinnessTimer";
 import AnalysisLoader from "../components/AnalysisLoader";
 import { Beer, XCircle } from "lucide-react";
+import { signIn } from "next-auth/react";
 
 function ProcessPageContent() {
   const { data: session, status } = useSession();
@@ -115,7 +116,7 @@ function ProcessPageContent() {
         <h2 className="text-xl font-semibold">
           Please sign in to analyze your pour
         </h2>
-        <Button onClick={() => signIn("google")}>Sign In</Button>
+        <Button onClick={() => signIn()}>Sign In</Button>
       </div>
     );
   }
