@@ -5,7 +5,7 @@ export default function InstagramShareButton({ imageUrl }) {
   const handleDownloadAndShare = async () => {
     try {
       // Step 1: Download the image
-      const response = await fetch(imageUrl);
+      const response = await fetch(`https://cors-anywhere.herokuapp.com/${imageUrl}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
 
