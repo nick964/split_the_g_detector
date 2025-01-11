@@ -28,15 +28,20 @@ export function EmailSignUpForm() {
     }
 
     try {
+       // Create form data to send file and user details
+       const formDataToSend = new FormData();
+       formDataToSend.append("userName", formData.name);
+       formDataToSend.append("email", formData.email);
+       formDataToSend.append("password", formData.password);
+       if (formData.profilePicture) {
+         formDataToSend.append("profilePicture", formData.profilePicture);
+       }
+
       const response = await fetch("/api/auth/register", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userName: formData.name,
-          email: formData.email,
-          password: formData.password,
-        }),
+        body: formDataToSend,
       });
+
 
       if (!response.ok) {
         const data = await response.json();
@@ -59,6 +64,11 @@ export function EmailSignUpForm() {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0]; // Get selected file
+    setFormData((prev) => ({ ...prev, profilePicture: file }));
   };
 
   return (
@@ -107,6 +117,10 @@ export function EmailSignUpForm() {
           onChange={handleChange}
           required
         />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="profilePicture">Profile Picture</Label>
+        <Input id="profilePicture" name="profilePicture" type="file" accept="image/*" onChange={handleFileChange} />
       </div>
       {error && <p className="text-sm text-red-500">{error}</p>}
       <Button

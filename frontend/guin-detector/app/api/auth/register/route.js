@@ -2,10 +2,15 @@ import { db } from "@/lib/firebase";
 import { doc, setDoc, getDoc } from "firebase/firestore";
 import { hash } from "bcryptjs";
 import { NextResponse } from "next/server";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 export async function POST(req) {
   try {
-    const { userName, email, password } = await req.json();
+    const formData = await req.formData();
+    const userName = formData.get("userName");
+    const email = formData.get("email");
+    const password = formData.get("password");
+    const profilePicture = formData.get("profilePicture");
 
     // Validate request data
     if (!userName || !email || !password) {
@@ -26,12 +31,25 @@ export async function POST(req) {
       );
     }
 
+     // Upload profile picture if provided
+     let profilePictureUrl = null;
+     if (profilePicture) {
+       const storage = getStorage();
+       const storageRef = ref(storage, `profilePics/${email}_${Date.now()}`);
+       const fileBuffer = await profilePicture.arrayBuffer();
+       await uploadBytes(storageRef, new Uint8Array(fileBuffer));
+ 
+       // Get the URL of the uploaded image
+       profilePictureUrl = await getDownloadURL(storageRef);
+     }
+
     // Create user in Firestore
     await setDoc(userDoc, {
       name: userName,
       email,
       password: hashedPassword, // Store hashed password
       createdAt: new Date(),
+      image: profilePictureUrl
     });
 
     return NextResponse.json({ message: "User registered successfully" });
