@@ -16,11 +16,8 @@ export default function InstagramShareButton({ imageUrl }) {
     try {
       setIsLoading(true);
 
-      const response = await fetch(imageUrl, {
-        mode: "cors",
-        credentials: "omit",
-      });
-
+      const response = await fetch(`/api/proxy?url=${encodeURIComponent(imageUrl)}`);
+      
       if (!response.ok) {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
