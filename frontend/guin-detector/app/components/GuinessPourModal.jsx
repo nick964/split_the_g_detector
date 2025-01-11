@@ -21,7 +21,7 @@ import InstagramShareButton from "./InstagramShareButton";
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent className="sm:max-w-xl">
           <DialogHeader>
-            <DialogTitle className="text-2xl font-bold">Pour Details</DialogTitle>
+            <DialogTitle className="text-2xl font-bold">Split Score</DialogTitle>
           </DialogHeader>
           <div className="space-y-6">
             {/* Image */}
