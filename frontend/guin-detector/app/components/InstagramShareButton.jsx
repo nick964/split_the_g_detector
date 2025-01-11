@@ -4,7 +4,7 @@ import { Instagram } from "lucide-react";
 export default function InstagramShareButton({ imageUrl }) {
   const handleShare = () => {
     // Instagram story sharing URL
-    const instagramUrl = `instagram://library?AssetPath=${encodeURIComponent(imageUrl)}`;
+    const instagramUrl = `instagram-stories://share?AssetPath=${encodeURIComponent(imageUrl)}`;
     
     // Try to open Instagram app
     window.location.href = instagramUrl;
