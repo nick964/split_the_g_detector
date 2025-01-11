@@ -13,11 +13,13 @@ import {
 } from "@/components/ui/card";
 import { Beer, Trophy, Clock, Target, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import GuinnessPourModal from "../components/GuinessPourModal";
 
 function ProfilePageContent() {
   const { data: session, status } = useSession();
   const [userData, setUserData] = useState(null);
   const [guinnessData, setGuinnessData] = useState([]);
+  const [selectedPour, setSelectedPour] = useState(null);
   const [stats, setStats] = useState({
     totalPours: 0,
     averageScore: 0,
@@ -48,7 +50,6 @@ function ProfilePageContent() {
           let fastestTime = Infinity;
 
           guinnessSnapshot.forEach((doc) => {
-            
             const data = { id: doc.id, ...doc.data() };
             guinnessItems.push(data);
             
@@ -193,7 +194,11 @@ function ProfilePageContent() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {guinnessData.map((item) => (
-            <Card key={item.id} className="overflow-hidden">
+            <Card 
+              key={item.id} 
+              className="overflow-hidden cursor-pointer transition-transform hover:scale-105"
+              onClick={() => setSelectedPour(item)}
+            >
               <div className="aspect-video relative">
                 <img
                   src={item.url}
@@ -232,6 +237,13 @@ function ProfilePageContent() {
           </div>
         )}
       </div>
+
+      {/* Pour Details Modal */}
+      <GuinnessPourModal
+        isOpen={!!selectedPour}
+        onClose={() => setSelectedPour(null)}
+        pour={selectedPour}
+      />
     </div>
   );
 }
