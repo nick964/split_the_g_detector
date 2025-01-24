@@ -81,4 +81,36 @@ body {
   .animate-progress {
     animation: progress 2s ease-in-out infinite;
   }
+
+  @keyframes grade-pop {
+    0% { transform: scale(0.8); opacity: 0; }
+    50% { transform: scale(1.2); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .animate-grade-pop {
+    animation: grade-pop 0.5s ease-out forwards;
+  }
+
+  @keyframes score-slide {
+    0% { transform: translateY(20px); opacity: 0; }
+    100% { transform: translateY(0); opacity: 1; }
+  }
+
+  .animate-score-slide {
+    animation: score-slide 0.5s ease-out forwards;
+    animation-delay: 0.3s;
+    opacity: 0;
+  }
+
+  .grade-glow {
+    text-shadow: 0 0 10px rgba(255, 193, 7, 0.5),
+                 0 0 20px rgba(255, 193, 7, 0.3),
+                 0 0 30px rgba(255, 193, 7, 0.2);
+  }
+
+  .score-stroke {
+    -webkit-text-stroke: 2px #b17d04;
+    paint-order: stroke fill;
+  }
 }

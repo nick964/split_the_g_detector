@@ -82,7 +82,7 @@ function ProcessPageContent() {
         throw new Error(result.error || 'Failed to process image');
       }
 
-      if (!result.analsis?.score) {
+      if (!result.analyzeResult?.score) {
         throw new Error('Invalid analysis result received');
       }
 
@@ -194,15 +194,54 @@ function ProcessPageContent() {
           )}
 
           {!error && analysisResult && (
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-6">
               <h3 className="text-xl font-bold">Results</h3>
-              <div className="bg-gray-50 p-6 rounded-lg">
-                <p className="text-3xl font-bold text-[#FFC107]">
-                  {(analysisResult.analsis.score * 100).toFixed(1)}%
+              <div className="bg-gray-50 p-6 rounded-lg space-y-6">
+
+                {/* Letter Grade */}
+                <div className="mb-2 relative">
+                  <h4 className="text-gray-600 mb-2">Grade</h4>
+                  <div className="relative inline-block">
+                    <span className="text-6xl font-bold text-[#FFC107] animate-grade-pop grade-glow score-stroke">
+                    {analysisResult.analyzeResult.letterGrade}
+                    </span>
+                    <div className="absolute inset-0 animate-ping opacity-75">
+                      <span className="text-6xl font-bold text-[#FFC107] opacity-0">
+                      {analysisResult.analyzeResult.letterGrade}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Score */}
+                <div className="mb-">
+                  <h4 className="text-gray-600 mb-2">Accuracy</h4>
+                  <div className="relative">
+                    <span className="text-4xl font-bold text-[#FFC107] animate-score-slide score-stroke inline-block">
+                      {(analysisResult.analyzeResult.score * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                </div>
+
+
+                {/* Time */}
+                <p className="text-xl text-gray-600">
+                  Time: {formatTime(currentTime)}
                 </p>
-                <p className="text-gray-600">Accuracy in splitting the G</p>
-                <p className="mt-4">Time: {formatTime(currentTime)}</p>
+
+                {/* Processed Image */}
+                <div className="mt-4">
+                  <h4 className="text-gray-800 mb-2">Calculated Image</h4>
+                  <div className="relative w-80 mx-auto">
+                    <img
+                      src={analysisResult.analyzeResult.processedUrl}
+                      alt="Processed Guinness pour"
+                      className="rounded-lg shadow-md"
+                    />
+                  </div>
+                </div>
               </div>
+
               <Button
                 onClick={handleTryAgain}
                 className="bg-[#FFC107] text-black hover:bg-[#ffd454]"

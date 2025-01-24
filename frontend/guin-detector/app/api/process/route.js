@@ -72,12 +72,14 @@ export async function POST(request) {
         body: JSON.stringify({ url: url }),
       }
     );
-    console.log('logging response from analysis');
-    console.log(JSON.stringify(analyzeResponse));
+   
+   
     if (!analyzeResponse.ok) {
       throw new Error('Failed to analyze image');
     }
+    console.log('logging response from analysis');
     const analyzeResult = await analyzeResponse.json();
+    console.log(analyzeResult);
 
     if(analyzeResult.status != "success") {
       throw new Error("Image was not analyzed")
@@ -104,7 +106,7 @@ export async function POST(request) {
       success: true,
       message: 'Image processed successfully',
       url: url,
-      analsis: analyzeResult
+      analyzeResult: analyzeResult
     });
 
   } catch (error) {
