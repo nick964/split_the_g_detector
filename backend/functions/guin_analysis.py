@@ -1,9 +1,51 @@
 import cv2
+import uuid
 import numpy as np
 from dotenv import load_dotenv
 load_dotenv()
 import os
 from roboflow import Roboflow
+from firebase_admin import credentials, initialize_app, storage
+
+# if os.getenv('FIREBASE_CONFIG'):
+#     initialize_app() 
+# else:
+#     cred = credentials.Certificate("guin-line-detector-firebase-adminsdk-v5pak-67ee91c53e.json")  # Replace with the correct path
+#     initialize_app(cred, {"storageBucket": "guin-line-detector.firebasestorage.app"})
+
+def score_to_letter_grade(score):
+    """
+    Convert a score out of 100 to a letter grade with distinctions like A+ and A−,
+    based on the provided grading scale.
+    
+    Args:
+    - score (int): The numerical grade (0–100).
+    
+    Returns:
+    - str: The corresponding letter grade.
+    """
+    if 92 <= score <= 100:
+        return 'A+'
+    elif 85 <= score <= 91:
+        return 'A'
+    elif 80 <= score <= 84:
+        return 'A−'
+    elif 77 <= score <= 79:
+        return 'B+'
+    elif 73 <= score <= 76:
+        return 'B'
+    elif 70 <= score <= 72:
+        return 'B−'
+    elif 67 <= score <= 69:
+        return 'C+'
+    elif 63 <= score <= 66:
+        return 'C'
+    elif 60 <= score <= 62:
+        return 'C−'
+    elif 50 <= score <= 59:
+        return 'D'
+    else:
+        return 'F'
 
 
 
@@ -136,17 +178,38 @@ def run_robo_flow(image_path, image_url, robo_api_key):
                 # Calculate the center of the "G"
                 g_center_y = (y1 + y2) // 2
                 print(f"Foam Line Y: {foam_line_y}, G Center Y: {g_center_y}")
-
-                # Draw the foam line on the original image in bold red
-                cv2.line(image, (x1, foam_line_y), (x2, foam_line_y), (0, 0, 255), 3)
-                cv2.putText(image, "Foam Line", (x1, foam_line_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-
-                # Draw the G center line on the original image in bold green
-                cv2.line(image, (x1, g_center_y), (x2, g_center_y), (0, 255, 0), 3)
-                cv2.putText(image, "G Center", (x1, g_center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2)
+                overlay = image.copy()
+                
+                # Draw the foam line (blue) with semi-transparency
+                cv2.line(overlay, (x1, foam_line_y), (x2, foam_line_y), (255, 0, 0), 3, cv2.LINE_AA)
+                cv2.putText(overlay, "Foam Line", (x1 + 5, foam_line_y - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2, cv2.LINE_AA)
+                
+                # Draw the G center line (green) with semi-transparency
+                cv2.line(overlay, (x1, g_center_y), (x2, g_center_y), (0, 255, 0), 3, cv2.LINE_AA)
+                cv2.putText(overlay, "G Center", (x1 + 5, g_center_y + 15), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 0), 2, cv2.LINE_AA)
+                
+                # Apply the overlay with transparency (blend with the original image)
+                alpha = 0.9  # Transparency factor
+                cv2.addWeighted(overlay, alpha, image, 1 - alpha, 0, image)
+                
+                # Save the image with the lines for debugging
+                cv2.imwrite("image_with_lines.jpg", image)
+                random_filename = f"{uuid.uuid4()}.jpg"
 
                 # Save the image with the lines for debugging
                 cv2.imwrite("image_with_lines.jpg", image)
+
+                # Upload the processed image to Firebase Storage
+                bucket = storage.bucket()
+                blob = bucket.blob(f'processed_guiness/{random_filename}')
+
+                # Upload the file
+                blob.upload_from_filename('image_with_lines.jpg')
+
+                # Make the uploaded file publicly accessible
+                blob.make_public()
+
+                print(f"Image uploaded to Firebase Storage: {blob.public_url}")
 
                 # Calculate the distance
                 distance = abs(foam_line_y - g_center_y)
@@ -157,11 +220,14 @@ def run_robo_flow(image_path, image_url, robo_api_key):
                 # cv2.putText(image, "Foam Line", (x1, foam_line_y + y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 0), 2)
 
                 score = calculate_foam_score(foam_line_y, y1, y2)
+                letter_grade = score_to_letter_grade(score * 100)  
                 print('score of guiness in functions')
                 print(score)
                 return {
                     "status": "success",
-                    "score": score
+                    "score": score,
+                    "processed_image_url": blob.public_url,
+                    "letter_grade": letter_grade
                 }
             else:
                 print("Foam line not detected.")

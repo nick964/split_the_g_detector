@@ -52,9 +52,9 @@ def analyze_image(req: https_fn.Request) -> https_fn.Response:
         # Clean up temporary file
         import os
         os.remove(tmp_path)
+        my_response = { "status": "success", "score": result["score"], "processedUrl": result["processed_image_url"], "letterGrade": result["letter_grade"]}
 
-        # Return the analysis result
-        return https_fn.Response(json.dumps({"status": "success", "score": result["score"]}), status=200, headers={"Content-Type": "application/json"})
+        return https_fn.Response(json.dumps(my_response), status=200, headers={"Content-Type": "application/json"})
 
 
     except requests.exceptions.RequestException as e:

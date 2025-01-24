@@ -92,7 +92,9 @@ export async function POST(request) {
       url,
       timestamp: new Date().toISOString(),
       score: analyzeResult.score,
-      sipLength: time
+      sipLength: time,
+      processedUrl: analyzeResult.processedUrl,
+      letterGrade: analyzeResult.letterGrade
     };
 
     await addDoc(guinnessCollectionRef, guinnessDoc);
