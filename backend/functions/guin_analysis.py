@@ -6,6 +6,7 @@ load_dotenv()
 import os
 from roboflow import Roboflow
 from firebase_admin import credentials, initialize_app, storage
+from errors import CustomError
 
 # if os.getenv('FIREBASE_CONFIG'):
 #     initialize_app() 
@@ -88,13 +89,13 @@ def detect_foam_line(grayscale_image, x1, y1, y2):
     cv2.imwrite("gradient_debug.jpg", gradient_image)
 
     # Step 3: Check for a significant jump
-    max_gradient = np.max(gradient)
-    gradient_threshold = 40  # Adjust this threshold based on your data
-    print(f"Max Gradient: {max_gradient:.2f}")
+    # max_gradient = np.max(gradient)
+    # gradient_threshold = 30  # Adjust this threshold based on your data
+    # print(f"Max Gradient: {max_gradient:.2f}")
 
-    if max_gradient < gradient_threshold:
-        print("No significant intensity jump detected. Likely all foam or all beer.")
-        raise ValueError("No significant intensity variation detected. Likely all foam or all beer.")
+    # if max_gradient < gradient_threshold:
+    #     print("No significant intensity jump detected. Likely all foam or all beer.")
+    #     raise CustomError("No significant jump detected. Did you even get close?", code="NO_JUMP")
     
     # Apply Gaussian Blur to smooth out noise
     blurred_column = cv2.GaussianBlur(narrow_column, (3, 3), 0)
@@ -231,7 +232,7 @@ def run_robo_flow(image_path, image_url, robo_api_key):
                 }
             else:
                 print("Foam line not detected.")
-                raise ValueError("No foam line detected")            
-    raise ValueError("G_logo not detected in the image.")
+                raise CustomError("No foam line detected, try a better picture", code="NO_LINE")     
+        raise CustomError("No 'G' found in image. Try with a better picture!", code="NO_G")
 
 

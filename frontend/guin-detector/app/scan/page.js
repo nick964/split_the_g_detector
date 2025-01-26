@@ -82,7 +82,7 @@ function ProcessPageContent() {
         throw new Error(result.error || 'Failed to process image');
       }
 
-      if (!result.analyzeResult?.score) {
+      if (result.analyzeResult?.score == null) {
         throw new Error('Invalid analysis result received');
       }
 

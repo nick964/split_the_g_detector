@@ -17,6 +17,7 @@ function base64ToUint8Array(base64) {
 }
 
 export async function POST(request) {
+  let storageRef;
   try {
     // Verify authentication
     const session = await getServerSession();
@@ -51,7 +52,7 @@ export async function POST(request) {
     // Convert Base64 to Uint8Array
     const imageBuffer = base64ToUint8Array(base64Data);
 
-    const storageRef = ref(storage, 'images/' + fileName);
+    storageRef = ref(storage, 'images/' + fileName);
     const uploadTask = uploadBytesResumable(storageRef, imageBuffer, {
       contentType: mimeType
     });
