@@ -153,6 +153,10 @@ def run_robo_flow(image_path, image_url, robo_api_key):
     if image is None:
         raise ValueError("Invalid image format")
 
+    # Check if predictions is empty
+    if not predictions['predictions']:
+        raise CustomError("No 'G' found in image. Try with a better picture!", code="NO_G")
+
     # Extract the bounding box for the "G"
     for prediction in predictions['predictions']:
         if prediction['class'] == 'G_logo':  # Ensure it's the "G"
