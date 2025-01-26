@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../../lib/firebase';
-import { doc, setDoc, getDoc, updateDoc, collection, addDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, addDoc, deleteObject } from 'firebase/firestore';
 import fetch from 'node-fetch';
 const apiKey = process.env.NEXT_PUBLIC_GUINESS_API_KEY;
 
