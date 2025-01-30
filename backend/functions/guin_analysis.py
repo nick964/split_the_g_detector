@@ -111,9 +111,18 @@ def detect_foam_line(grayscale_image, x1, y1, y2):
     binary_profile = np.mean(binary_column, axis=1)
     print("Binary Profile:", binary_profile)
 
-    # Detect transition: Find where the change in intensity is the biggest
-    gradient = np.abs(np.diff(binary_profile))
-    foam_line_y = int(np.argmax(gradient)) + y1  # Offset by y1 to convert to global coordinates
+    # Step 4: Detect the first significant intensity change
+    foam_line_y = None
+    gradient_threshold = 50  # Adjust this value based on your data
+    for i in range(1, len(binary_profile)):
+        gradient = abs(binary_profile[i] - binary_profile[i - 1])
+        if gradient > gradient_threshold:
+            foam_line_y = i + y1  # Offset by y1 to convert to global coordinates
+            break
+
+    if foam_line_y is None:
+        print("No significant foam line detected. Adjust threshold or check image quality.")
+        raise CustomError("No significant jump detected. Did you even get close?", code="NO_JUMP")
 
     return foam_line_y
 

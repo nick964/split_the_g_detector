@@ -3,3 +3,4 @@ backend/functions/test_guin.py
 *.jpeg
 *.png
 .DS_Store
+guin-line-detector-firebase-adminsdk-v5pak-67ee91c53e.json
