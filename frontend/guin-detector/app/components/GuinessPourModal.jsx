@@ -62,7 +62,7 @@ import InstagramShareButton from "./InstagramShareButton";
   
             {/* Date and Time */}
             <div className="text-sm text-gray-500 text-center">
-              Poured on {new Date(pour.timestamp).toLocaleString()}
+              Split on {new Date(pour.timestamp).toLocaleString()}
             </div>
           </div>
         </DialogContent>

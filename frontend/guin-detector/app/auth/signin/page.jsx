@@ -37,7 +37,7 @@ export default function SignInPage() {
           </div>
           <CardDescription className="text-center">
             {isSignUp
-              ? "Create an account to start tracking your pours"
+              ? "Create an account to start tracking your splits"
               : "Sign in to continue your Guinness journey"}
           </CardDescription>
         </CardHeader>

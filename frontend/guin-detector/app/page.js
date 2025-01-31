@@ -7,7 +7,7 @@ const features = [
   {
     icon: Timer,
     title: "Time Your Sip",
-    description: "Start the timer as you begin your sip. Take your time - the perfect pour is an art!"
+    description: "Start the timer as you begin your sip. Take your time - the perfect split is an art!"
   },
   {
     icon: Camera,
@@ -99,9 +99,9 @@ export default function Home() {
       {/* CTA Section */}
       <section className="w-full py-16 px-4 text-center">
         <div className="max-w-2xl mx-auto space-y-6">
-          <h2 className="text-3xl font-bold">Ready to Perfect Your Pour?</h2>
+          <h2 className="text-3xl font-bold">Ready to Perfect Your Split?</h2>
           <p className="text-gray-600">
-            Join the community of Guinness enthusiasts and start tracking your progress today.
+            Join the community of Guinness enthusiasts and start tracking your splits today.
           </p>
           <Link href="/scan">
             <Button className="bg-black text-white hover:bg-gray-800 mt-4">

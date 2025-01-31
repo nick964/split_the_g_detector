@@ -175,7 +175,7 @@ function LeaderboardPage() {
           {leaderboardData.length === 0 && (
             <div className="text-center py-12">
               <Beer className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-              <p className="text-gray-500">No pours found for this time period.</p>
+              <p className="text-gray-500">No Guinnei found for this time period.</p>
             </div>
           )}
         </div>
