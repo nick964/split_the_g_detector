@@ -64,13 +64,14 @@ export async function POST(request) {
     // Get the download URL of the uploaded image
     const url = await getDownloadURL(uploadTask.snapshot.ref);
 
-    // Call external image analysis API
+    // Call external image analysis API with increased timeout
     const analyzeResponse = await fetch(
       'https://analyze-image-nwfcxhboma-uc.a.run.app/guin-line-detector/us-central1/analyze_image',
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'API-Key': apiKey },
-        body: JSON.stringify({ url: url }),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'API-Key': apiKey },
+      body: JSON.stringify({ url: url }),
+      timeout: 30000 // Set timeout to 30 seconds
       }
     );
    
