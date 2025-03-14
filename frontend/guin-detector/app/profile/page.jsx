@@ -227,7 +227,7 @@ function ProfilePageContent() {
 
         {guinnessData.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-500">No pours recorded yet. Time to start pouring!</p>
+            <p className="text-gray-500">No splits recorded yet. Time to start splitting G's!</p>
             <Link href="/scan">
               <Button className="mt-4 bg-[#FFC107] text-black hover:bg-[#ffd454]">
                 Scan your First Split

@@ -2,7 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import SessionWrapper from "./components/SessionWrapper";
 import { Navbar } from "./components/navbar";
-
+import FirebaseAuthProvider from "./auth/FirebaseAuthProvider";
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -25,8 +25,10 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <SessionWrapper>
-          <Navbar />
-          {children}
+          <FirebaseAuthProvider>
+            <Navbar />
+            {children}
+          </FirebaseAuthProvider>
         </SessionWrapper>
       </body>
     </html>

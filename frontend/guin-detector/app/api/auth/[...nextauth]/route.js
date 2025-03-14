@@ -4,6 +4,7 @@ import CredentialsProvider from "next-auth/providers/credentials";
 import { db } from '../../../../lib/firebase';
 import { doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { compare, hash } from "bcryptjs";
+import { adminAuth } from '../../../../lib/firebase-admin';
 
 const handler = NextAuth({
   providers: [
@@ -86,9 +87,26 @@ const handler = NextAuth({
       }
     },
     async session({ session, user, token }) {
-      // Attach custom user fields to the session
+      if(session?.user) {
+        if(token?.sub) {
+          session.user.uid = token.sub;
+
+          const firebaseToken = await adminAuth.createCustomToken(token.sub);
+          session.firebaseToken = firebaseToken;
+        }
+        else {
+          console.log('no token.sub');
+
+        }
+      }
       session.user.uid = token.sub;
       return session;
+    },
+    async jwt({ user, token }) {
+      if (user) {
+        token.sub = user.id;
+      }
+      return token;
     },
   },
 });
