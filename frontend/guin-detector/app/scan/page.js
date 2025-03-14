@@ -114,7 +114,7 @@ function ProcessPageContent() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
         <h2 className="text-xl font-semibold">
-          Please sign in to analyze your pour
+          Please sign in to analyze your G split
         </h2>
         <Button onClick={() => signIn()}>Sign In</Button>
       </div>
@@ -142,14 +142,14 @@ function ProcessPageContent() {
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold flex items-center justify-center gap-2">
             <Beer className="h-6 w-6 text-[#FFC107]" />
-            Perfect Pour Challenge
+            Split the G Challenge
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {!isRecording && !showUpload && !analysisResult && (
             <div className="text-center space-y-4">
               <p className="text-lg text-gray-600">
-                Ready to test your Guinness pouring skills? Click start when
+                Ready to test your G splitting skills? Click start when
                 you begin your sip!
               </p>
               <Button
