@@ -13,7 +13,7 @@ function CrawlRankingPage() {
   const [error, setError] = useState(null);
   
   // The specific date for the crawl - March 15, 2025
-  const crawlDate = new Date(2025, 2, 14); // Month is 0-indexed, so 2 = March
+  const crawlDate = new Date(2025, 2, 15); // Month is 0-indexed, so 2 = March
   
   // Format the crawl date for display
   const formattedCrawlDate = crawlDate.toLocaleDateString('en-US', {
@@ -270,9 +270,9 @@ function CrawlRankingPage() {
                   <div className="divide-y divide-gray-200">
                     {rankingsData.map((pour, index) => (
                       <div key={pour.id} className="p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center">
+                        <div className="flex items-center mb-3">
                           {/* Rank */}
-                          <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-[#0D3B1A] text-white font-bold mr-4 relative">
+                          <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-[#0D3B1A] text-white font-bold mr-4 relative shadow-md">
                             {index + 1}
                             {index < 3 && (
                               <span className="absolute -top-1 -right-1 text-xl">
@@ -283,7 +283,7 @@ function CrawlRankingPage() {
                           
                           {/* User info */}
                           <div className="flex-grow flex items-center">
-                            <div className="w-10 h-10 rounded-full overflow-hidden mr-3 border border-[#0D3B1A]">
+                            <div className="w-10 h-10 rounded-full overflow-hidden mr-3 border-2 border-[#0D3B1A] shadow-sm">
                               <img
                                 src={pour.userImage || '/placeholder-avatar.jpg'}
                                 alt={pour.userName}
@@ -311,18 +311,42 @@ function CrawlRankingPage() {
                           </div>
                         </div>
                         
-                        {/* Pour image - small preview */}
-                        <div className="mt-3 flex">
-                          <div className="w-full h-16 rounded-md overflow-hidden relative">
-                            <img
-                              src={pour.url || pour.processedUrl || '/placeholder-guinness.jpg'}
-                              alt={`Pour by ${pour.userName}`}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
-                            <div className="absolute bottom-1 left-2 text-white text-xs font-medium flex items-center">
-                              <Award className="h-3 w-3 mr-1 text-[#FFC107]" />
-                              Perfect Pour Attempt
+                        {/* Pour image with details - improved layout */}
+                        <div className="ml-16"> {/* Align with user info */}
+                          <div className="bg-gray-50 rounded-md p-2 border border-gray-100">
+                            <div className="flex items-start space-x-3">
+                              {/* Image with fixed aspect ratio */}
+                              <div className="w-24 h-24 relative rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
+                                <img
+                                  src={pour.url || pour.processedUrl || '/placeholder-guinness.jpg'}
+                                  alt={`Pour by ${pour.userName}`}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                              </div>
+                              
+                              {/* Pour details */}
+                              <div className="flex-grow">
+                                <div className="flex items-center text-sm text-gray-700 mb-1">
+                                  <Award className="h-4 w-4 mr-1 text-[#FFC107]" />
+                                  <span className="font-medium">Perfect Pour Attempt</span>
+                                </div>
+                                <p className="text-xs text-gray-500 mb-1">
+                                  {new Date(pour.timestamp).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                                <div className="flex items-center text-xs text-gray-500">
+                                  <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
+                                    <Beer className="h-3 w-3 mr-1" />
+                                    {pour.barName || 'Unknown Location'}
+                                  </span>
+                                </div>
+                              </div>
                             </div>
                           </div>
                         </div>
