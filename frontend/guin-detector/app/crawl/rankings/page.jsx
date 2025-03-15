@@ -128,7 +128,7 @@ function CrawlRankingPage() {
             <Loader2 className="h-16 w-16 animate-spin text-[#0D3B1A] mb-4" />
             <Beer className="h-8 w-8 text-[#764C25] absolute top-4 left-4" />
           </div>
-          <p className="text-[#0D3B1A] font-semibold">Pouring the rankings...</p>
+          <p className="text-[#0D3B1A] font-semibold">Loading Guinness Crawl Rankings...</p>
         </div>
       </div>
     );
@@ -200,7 +200,7 @@ function CrawlRankingPage() {
                 Crawl Leaderboard
               </h3>
               <p className="text-gray-200">
-                Who poured the perfect pint? These brave souls have mastered the art of the perfect Guinness split during our legendary pub crawl!
+                Current rankings of the Guinness Crawl. Who will be the Guinness Crawl Champion?
               </p>
             </div>
             
