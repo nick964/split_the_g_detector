@@ -63,22 +63,37 @@ export default function CrawlLocationPage() {
       if (docSnapshot.exists()) {
         const data = docSnapshot.data();
         
-        // Get admin location
-        if (data.adminLocation) {
-          console.log("Admin location from Firebase:", data.adminLocation);
-          setCurrentLocation(data.adminLocation);
-        } else {
-          // No admin location set yet, use default
-          setCurrentLocation(DEFAULT_LOCATION);
-        }
-        
-        // Get bars from Firebase
+        // Get bars from Firebase first (so we can use them as fallback)
         if (data.bars && Array.isArray(data.bars) && data.bars.length > 0) {
           console.log("Bars loaded from Firebase:", data.bars.length);
           setCrawlBars(data.bars);
-        } else if (data.visitedBarIds) {
-          // For backward compatibility with older data structure
-          console.log("Using legacy visitedBarIds format");
+          
+          // Get admin location or use fallbacks
+          if (data.adminLocation) {
+            console.log("Admin location from Firebase:", data.adminLocation);
+            setCurrentLocation(data.adminLocation);
+          } else if (data.bars[0]?.location) {
+            // Fallback to first bar's location if no admin location
+            console.log("Using first bar location as fallback:", data.bars[0].location);
+            setCurrentLocation(data.bars[0].location);
+          } else {
+            // Last resort fallback
+            setCurrentLocation(DEFAULT_LOCATION);
+          }
+        } else {
+          // No bars, check if we have admin location
+          if (data.adminLocation) {
+            console.log("Admin location from Firebase:", data.adminLocation);
+            setCurrentLocation(data.adminLocation);
+          } else {
+            // No admin location or bars, use default
+            setCurrentLocation(DEFAULT_LOCATION);
+          }
+          
+          if (data.visitedBarIds) {
+            // For backward compatibility with older data structure
+            console.log("Using legacy visitedBarIds format");
+          }
         }
       } else {
         // Document doesn't exist yet, use default location
@@ -117,16 +132,43 @@ export default function CrawlLocationPage() {
               
               console.log("Admin location updated in Firebase:", newLocation);
             } catch (error) {
-              console.error("Error updating admin location:", error);
+              console.error("Error updating admin location in Firebase:", error);
             } finally {
               setIsUpdatingLocation(false);
             }
           },
           (error) => {
             console.error("Error getting admin location:", error);
+            console.error("Geolocation error code:", error.code);
+            
+            // More detailed error messages based on error code
+            switch(error.code) {
+              case error.PERMISSION_DENIED:
+                console.error("User denied the request for geolocation.");
+                break;
+              case error.POSITION_UNAVAILABLE:
+                console.error("Location information is unavailable.");
+                break;
+              case error.TIMEOUT:
+                console.error("The request to get user location timed out.");
+                break;
+              default:
+                console.error("An unknown error occurred in geolocation.");
+                break;
+            }
+            
             setIsUpdatingLocation(false);
+          },
+          // Add options for better mobile compatibility
+          {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
           }
         );
+      } else {
+        console.error("Geolocation is not supported by this browser");
+        setIsUpdatingLocation(false);
       }
     };
     
@@ -174,16 +216,89 @@ export default function CrawlLocationPage() {
             
             console.log("Admin location manually updated:", newLocation);
           } catch (error) {
-            console.error("Error updating admin location:", error);
+            console.error("Error updating admin location in Firebase:", error);
           } finally {
             setIsUpdatingLocation(false);
           }
         },
         (error) => {
           console.error("Error getting admin location:", error);
+          console.error("Geolocation error code:", error.code);
+          
+          // More detailed error messages based on error code
+          switch(error.code) {
+            case error.PERMISSION_DENIED:
+              console.error("User denied the request for geolocation.");
+              alert("Location permission denied. Please enable location services for this site in your browser settings.");
+              break;
+            case error.POSITION_UNAVAILABLE:
+              console.error("Location information is unavailable.");
+              alert("Unable to get your current location. Please try again or check your device settings.");
+              break;
+            case error.TIMEOUT:
+              console.error("The request to get user location timed out.");
+              alert("Location request timed out. Please try again with better connectivity.");
+              break;
+            default:
+              console.error("An unknown error occurred in geolocation.");
+              alert("An error occurred while getting your location. Please try again.");
+              break;
+          }
+          
+          // If we have bars, use the first bar's location as a fallback
+          if (crawlBars.length > 0) {
+            const fallbackLocation = crawlBars[0].location;
+            console.log("Using first bar location as fallback after geolocation error:", fallbackLocation);
+            
+            // Update Firebase with the fallback location
+            try {
+              const crawlDocRef = doc(db, 'crawl', 'current');
+              setDoc(crawlDocRef, { 
+                adminLocation: fallbackLocation,
+                lastUpdated: new Date().toISOString(),
+                locationFallbackUsed: true
+              }, { merge: true });
+              
+              alert("Using the first bar's location as a fallback since we couldn't get your current location.");
+            } catch (fbError) {
+              console.error("Error setting fallback location:", fbError);
+            }
+          }
+          
           setIsUpdatingLocation(false);
+        },
+        // Add options for better mobile compatibility
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0
         }
       );
+    } else {
+      console.error("Geolocation is not supported by this browser");
+      alert("Your browser doesn't support geolocation. Please try a different browser.");
+      
+      // If we have bars, use the first bar's location as a fallback
+      if (crawlBars.length > 0) {
+        const fallbackLocation = crawlBars[0].location;
+        console.log("Using first bar location as fallback for unsupported browser:", fallbackLocation);
+        
+        // Update Firebase with the fallback location
+        try {
+          const crawlDocRef = doc(db, 'crawl', 'current');
+          setDoc(crawlDocRef, { 
+            adminLocation: fallbackLocation,
+            lastUpdated: new Date().toISOString(),
+            locationFallbackUsed: true
+          }, { merge: true });
+          
+          alert("Using the first bar's location as a fallback since your browser doesn't support geolocation.");
+        } catch (fbError) {
+          console.error("Error setting fallback location:", fbError);
+        }
+      }
+      
+      setIsUpdatingLocation(false);
     }
   };
 
