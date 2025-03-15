@@ -196,7 +196,7 @@ function LeaderboardPage() {
                     {/* Pour Image */}
                     <div className="w-24 sm:w-32 relative">
                     <img
-                        src={pour.url || pour.processedUrl || '/public/placeholder-guinness.jpg'}
+                        src={pour.url || pour.processedUrl || '/placeholder-guinness.jpg'}
                         alt={`Pour by ${pour.userName}`}
                         className="absolute inset-0 w-full h-full object-cover"
                     />
@@ -207,7 +207,7 @@ function LeaderboardPage() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2 min-w-0">
                         <img
-                            src={pour.userImage || '/public/placeholder-avatar.jpg'}
+                            src={pour.userImage || '/placeholder-avatar.jpg'}
                             alt={pour.userName}
                             className="w-8 h-8 rounded-full flex-shrink-0"
                         />
