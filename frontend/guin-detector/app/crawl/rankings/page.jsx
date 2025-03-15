@@ -227,6 +227,10 @@ function CrawlRankingPage() {
                                     src={pour.userImage || '/placeholder-avatar.jpg'} 
                                     alt={pour.userName}
                                     className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                      console.log("Podium image failed to load:", e.target.src);
+                                      e.target.src = '/placeholder-avatar.jpg';
+                                    }}
                                   />
                                 </div>
                                 <div className="absolute -top-2 -right-2 text-2xl">
@@ -288,6 +292,10 @@ function CrawlRankingPage() {
                                 src={pour.userImage || '/placeholder-avatar.jpg'}
                                 alt={pour.userName}
                                 className="w-full h-full object-cover"
+                                onError={(e) => {
+                                  console.log("Image failed to load:", e.target.src);
+                                  e.target.src = '/placeholder-avatar.jpg';
+                                }}
                               />
                             </div>
                             <div>
@@ -321,6 +329,10 @@ function CrawlRankingPage() {
                                   src={pour.url || pour.processedUrl || '/placeholder-guinness.jpg'}
                                   alt={`Pour by ${pour.userName}`}
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    console.log("Pour image failed to load:", e.target.src);
+                                    e.target.src = '/placeholder-guinness.jpg';
+                                  }}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
                               </div>
