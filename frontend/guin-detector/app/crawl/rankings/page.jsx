@@ -34,7 +34,7 @@ function CrawlRankingPage() {
     try {
       // Create timestamp range for the crawl date (start and end of day)
       const startOfDay = new Date(crawlDate);
-      startOfDay.setHours(0, 0, 0, 0);
+      startOfDay.setHours(13, 0, 0, 0);
       
       const endOfDay = new Date(crawlDate);
       endOfDay.setHours(23, 59, 59, 999);
