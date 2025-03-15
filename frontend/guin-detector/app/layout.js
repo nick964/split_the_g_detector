@@ -3,6 +3,8 @@ import "./globals.css";
 import SessionWrapper from "./components/SessionWrapper";
 import { Navbar } from "./components/navbar";
 import FirebaseAuthProvider from "./auth/FirebaseAuthProvider";
+import { Analytics } from '@vercel/analytics/next';
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -30,6 +32,7 @@ export default function RootLayout({ children }) {
             {children}
           </FirebaseAuthProvider>
         </SessionWrapper>
+        <Analytics />
       </body>
     </html>
   );
