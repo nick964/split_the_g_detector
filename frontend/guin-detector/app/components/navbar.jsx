@@ -54,13 +54,6 @@ export function Navbar() {
           {crawlDropdownOpen && (
             <div className="absolute top-full left-0 mt-1 bg-black/95 border border-neutral-800 rounded-md py-2 w-40 z-50">
               <Link 
-                href="/crawl/location" 
-                className="text-white hover:bg-neutral-800 block px-4 py-2"
-                onClick={() => setCrawlDropdownOpen(false)}
-              >
-                Crawl Location
-              </Link>
-              <Link 
                 href="/crawl/rankings" 
                 className="text-white hover:bg-neutral-800 block px-4 py-2"
                 onClick={() => setCrawlDropdownOpen(false)}
@@ -88,12 +81,6 @@ export function Navbar() {
           
           {crawlDropdownOpen && (
             <div className="pl-6 mt-2 space-y-2">
-              <Link 
-                href="/crawl/location" 
-                className="text-white hover:underline block"
-              >
-                Crawl Location
-              </Link>
               <Link 
                 href="/crawl/rankings" 
                 className="text-white hover:underline block"
