@@ -34,7 +34,7 @@ function StPatricksDayRankingPage() {
     try {
       // Create timestamp range for St. Patrick's Day (start and end of day)
       const startOfDay = new Date(stPatricksDay);
-      startOfDay.setHours(13, 0, 0, 0);
+      startOfDay.setHours(10, 0, 0, 0);
       
       const endOfDay = new Date(stPatricksDay);
       endOfDay.setHours(23, 59, 59, 999);
