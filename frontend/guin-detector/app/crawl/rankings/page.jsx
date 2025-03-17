@@ -4,13 +4,98 @@ import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, query, where, orderBy, limit, Timestamp } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Beer, Trophy, Calendar, Medal, Loader2, Clock, Star, Award } from "lucide-react";
+import { Beer, Trophy, Calendar, Medal, Loader2, Clock, Star, Award, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+
+// Image Modal Component
+const ImageModal = ({ isOpen, onClose, imageUrl, userName, barName, score, timestamp }) => {
+  if (!isOpen) return null;
+  
+  return (
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity"
+      onClick={onClose}
+    >
+      <div 
+        className="relative bg-white dark:bg-gray-900 p-4 rounded-lg shadow-xl max-w-3xl w-full mx-4"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button 
+          className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white bg-white dark:bg-gray-800 rounded-full p-1 z-10"
+          onClick={onClose}
+        >
+          <X className="h-6 w-6" />
+        </button>
+        
+        <div className="flex flex-col md:flex-row gap-4">
+          {/* Image container */}
+          <div className="flex-1 relative rounded-md overflow-hidden bg-black">
+            <img
+              src={imageUrl || '/placeholder-guinness.jpg'}
+              alt={`Pour by ${userName}`}
+              className="w-full h-auto max-h-[70vh] object-contain mx-auto"
+              onError={(e) => {
+                console.log("Modal image failed to load:", e.target.src);
+                e.target.src = '/placeholder-guinness.jpg';
+              }}
+            />
+          </div>
+          
+          {/* Details sidebar */}
+          <div className="md:w-64 flex-shrink-0 bg-gray-50 dark:bg-gray-800 p-4 rounded-md">
+            <h3 className="font-bold text-lg text-[#0D3B1A] dark:text-white mb-2">{userName}'s Pour</h3>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Score</p>
+                <p className="text-xl font-bold text-[#0D3B1A] dark:text-green-400">
+                  {(score * 100).toFixed(1)}%
+                </p>
+              </div>
+              
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Location</p>
+                <div className="flex items-center">
+                  <Beer className="h-4 w-4 mr-1 text-[#764C25]" />
+                  <p className="font-medium">{barName || 'Unknown Location'}</p>
+                </div>
+              </div>
+              
+              <div>
+                <p className="text-sm text-gray-500 dark:text-gray-400">Date & Time</p>
+                <p className="font-medium">
+                  {timestamp ? new Date(timestamp).toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  }) : 'Unknown Date'}
+                </p>
+              </div>
+              
+              {/* Irish decoration */}
+              <div className="flex justify-center mt-4 space-x-2">
+                <span className="text-green-600 text-xl">☘️</span>
+                <span className="text-[#0D3B1A] dark:text-white font-medium">Sláinte!</span>
+                <span className="text-green-600 text-xl">☘️</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
 
 function StPatricksDayRankingPage() {
   const [rankingsData, setRankingsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [displayCount, setDisplayCount] = useState(100); // Number of items to display initially
+  const [hasMore, setHasMore] = useState(false); // Whether there are more items to load
+  const [allRankings, setAllRankings] = useState([]); // Store all rankings data
   
   // The specific date for St. Patrick's Day - March 17, 2025
   const stPatricksDay = new Date(2025, 2, 17); // Month is 0-indexed, so 2 = March
@@ -26,6 +111,12 @@ function StPatricksDayRankingPage() {
   useEffect(() => {
     fetchStPatricksDayRankings();
   }, []);
+
+  // Update displayed rankings when allRankings or displayCount changes
+  useEffect(() => {
+    setRankingsData(allRankings.slice(0, displayCount));
+    setHasMore(allRankings.length > displayCount);
+  }, [allRankings, displayCount]);
 
   const fetchStPatricksDayRankings = async () => {
     setLoading(true);
@@ -78,13 +169,20 @@ function StPatricksDayRankingPage() {
       // Sort by score (highest first)
       const sortedPours = crawlPours.sort((a, b) => b.score - a.score);
       
-      setRankingsData(sortedPours);
+      // Store all rankings
+      setAllRankings(sortedPours);
+      // Initial display will be handled by the useEffect
     } catch (err) {
       console.error("Error fetching crawl rankings:", err);
       setError("Failed to load crawl rankings. Please try again.");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to load more rankings
+  const loadMoreRankings = () => {
+    setDisplayCount(prevCount => prevCount + 100);
   };
 
   const formatTime = (time) => {
@@ -120,7 +218,23 @@ function StPatricksDayRankingPage() {
     }
   };
 
-  if (loading) {
+  // Function to open the image modal
+  const openImageModal = (pour) => {
+    setSelectedImage({
+      url: pour.url || pour.processedUrl || '/placeholder-guinness.jpg',
+      userName: pour.userName,
+      barName: pour.barName,
+      score: pour.score,
+      timestamp: pour.timestamp
+    });
+  };
+
+  // Function to close the image modal
+  const closeImageModal = () => {
+    setSelectedImage(null);
+  };
+
+  if (loading && allRankings.length === 0) {
     return (
       <div className="container mx-auto px-4 py-8 flex justify-center items-center min-h-[60vh]" style={{ background: 'url("https://www.transparenttextures.com/patterns/classy-fabric.png")', backgroundColor: '#F5F5F5' }}>
         <div className="flex flex-col items-center">
@@ -190,6 +304,11 @@ function StPatricksDayRankingPage() {
               <Calendar className="h-5 w-5 mr-2 text-[#FFC107]" />
               <p className="italic">{formattedStPatricksDay}</p>
             </div>
+            {allRankings.length > 0 && (
+              <div className="mt-2 text-sm text-gray-200">
+                <span>Showing {Math.min(displayCount, allRankings.length)} of {allRankings.length} competitors</span>
+              </div>
+            )}
           </CardHeader>
           <CardContent className="p-6 bg-gradient-to-b from-[#F5F5F5] to-[#E5E5E5]">
             <div className="mb-6 p-4 bg-[#0D3B1A] text-white rounded-lg shadow-md relative overflow-hidden">
@@ -211,7 +330,7 @@ function StPatricksDayRankingPage() {
             {rankingsData.length > 0 ? (
               <div className="space-y-4">
                 {/* Top 3 podium */}
-                {rankingsData.slice(0, 3).length > 0 && (
+                {allRankings.slice(0, 3).length > 0 && (
                   <div className="flex flex-col md:flex-row gap-4 mb-8 relative">
                     {/* St. Patrick's Day decorations for podium */}
                     <div className="absolute -top-6 left-1/4 text-3xl rotate-[-10deg]">☘️</div>
@@ -220,7 +339,7 @@ function StPatricksDayRankingPage() {
                     
                     {/* Create placeholders for missing positions */}
                     {Array.from({ length: 3 }).map((_, index) => {
-                      const pour = rankingsData[index];
+                      const pour = allRankings[index]; // Always show top 3 from all rankings
                       const podiumHeights = ["h-32", "h-24", "h-20"];
                       const podiumOrder = [1, 0, 2]; // Center, Left, Right for 1st, 2nd, 3rd
                       const orderIndex = podiumOrder[index];
@@ -282,10 +401,18 @@ function StPatricksDayRankingPage() {
                 
                 {/* Rest of the rankings */}
                 <div className="bg-white rounded-lg shadow-md border-2 border-[#0D3B1A] overflow-hidden">
-                  <div className="bg-[#0D3B1A] text-white py-3 px-4 font-bold text-lg flex items-center">
-                    <span className="mr-2">☘️</span>
-                    All St. Patrick's Day Competitors
-                    <span className="ml-2">☘️</span>
+                  <div className="bg-[#0D3B1A] text-white py-3 px-4 font-bold text-lg flex items-center justify-between">
+                    <div>
+                      <span className="mr-2">☘️</span>
+                      All St. Patrick's Day Competitors
+                      <span className="ml-2">☘️</span>
+                    </div>
+                    <div className="text-sm font-normal">
+                      {loading && <Loader2 className="h-4 w-4 animate-spin inline mr-2" />}
+                      {allRankings.length > 0 && (
+                        <span>Showing {Math.min(displayCount, allRankings.length)} of {allRankings.length}</span>
+                      )}
+                    </div>
                   </div>
                   
                   <div className="divide-y divide-gray-200">
@@ -294,10 +421,10 @@ function StPatricksDayRankingPage() {
                         <div className="flex items-center mb-3">
                           {/* Rank */}
                           <div className="flex-shrink-0 w-12 h-12 flex items-center justify-center rounded-full bg-[#0D3B1A] text-white font-bold mr-4 relative shadow-md">
-                            {index + 1}
-                            {index < 3 && (
+                            {allRankings.indexOf(pour) + 1}
+                            {allRankings.indexOf(pour) < 3 && (
                               <span className="absolute -top-1 -right-1 text-xl">
-                                {getMedalEmoji(index)}
+                                {getMedalEmoji(allRankings.indexOf(pour))}
                               </span>
                             )}
                           </div>
@@ -340,8 +467,13 @@ function StPatricksDayRankingPage() {
                         <div className="ml-16"> {/* Align with user info */}
                           <div className="bg-gray-50 rounded-md p-2 border border-gray-100">
                             <div className="flex items-start space-x-3">
-                              {/* Image with fixed aspect ratio */}
-                              <div className="w-24 h-24 relative rounded-md overflow-hidden flex-shrink-0 border border-gray-200">
+                              {/* Image with fixed aspect ratio - now clickable */}
+                              <div 
+                                className="w-24 h-24 relative rounded-md overflow-hidden flex-shrink-0 border border-gray-200 cursor-pointer hover:opacity-90 transition-opacity"
+                                onClick={() => openImageModal(pour)}
+                                role="button"
+                                aria-label={`View larger image of pour by ${pour.userName}`}
+                              >
                                 <img
                                   src={pour.url || pour.processedUrl || '/placeholder-guinness.jpg'}
                                   alt={`Pour by ${pour.userName}`}
@@ -352,6 +484,14 @@ function StPatricksDayRankingPage() {
                                   }}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+                                {/* Add a visual indicator that the image is clickable */}
+                                <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                                  <div className="bg-black/60 rounded-full p-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                    </svg>
+                                  </div>
+                                </div>
                               </div>
                               
                               {/* Pour details */}
@@ -382,6 +522,26 @@ function StPatricksDayRankingPage() {
                       </div>
                     ))}
                   </div>
+                  
+                  {/* Load More Button */}
+                  {hasMore && (
+                    <div className="p-4 flex justify-center border-t border-gray-200">
+                      <Button 
+                        onClick={loadMoreRankings}
+                        className="bg-[#0D3B1A] text-white hover:bg-[#0A2E14] shadow-md"
+                        disabled={loading}
+                      >
+                        {loading ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Loading...
+                          </>
+                        ) : (
+                          <>Load Next 100 Competitors</>
+                        )}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
@@ -404,11 +564,12 @@ function StPatricksDayRankingPage() {
             )}
             
             {/* Refresh Button */}
-            {rankingsData.length > 0 && (
+            {allRankings.length > 0 && (
               <div className="mt-8 flex justify-center">
                 <Button 
                   onClick={() => fetchStPatricksDayRankings()}
                   className="bg-[#0D3B1A] text-white hover:bg-[#0A2E14] shadow-md"
+                  disabled={loading}
                 >
                   <Loader2 className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : 'hidden'}`} />
                   Refresh Rankings
@@ -430,6 +591,19 @@ function StPatricksDayRankingPage() {
           </CardContent>
         </Card>
       </div>
+      
+      {/* Image Modal */}
+      {selectedImage && (
+        <ImageModal 
+          isOpen={!!selectedImage}
+          onClose={closeImageModal}
+          imageUrl={selectedImage.url}
+          userName={selectedImage.userName}
+          barName={selectedImage.barName}
+          score={selectedImage.score}
+          timestamp={selectedImage.timestamp}
+        />
+      )}
     </div>
   );
 }
