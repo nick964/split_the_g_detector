@@ -36,14 +36,14 @@ export function Navbar() {
           Scan Guinness
         </Link>
         
-        {/* Guinness Crawl Dropdown - Desktop */}
+        {/* St. Patrick's Day Dropdown - Desktop */}
         <div className="hidden md:block relative">
           <button 
             onClick={toggleCrawlDropdown}
             className="text-white hover:underline flex items-center"
           >
             <Map className="h-4 w-4 mr-1 text-[#FFC107]" />
-            Guinness Crawl
+            St. Patrick's Day
             {crawlDropdownOpen ? (
               <ChevronUp className="h-4 w-4 ml-1" />
             ) : (
@@ -52,26 +52,26 @@ export function Navbar() {
           </button>
           
           {crawlDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-black/95 border border-neutral-800 rounded-md py-2 w-40 z-50">
+            <div className="absolute top-full left-0 mt-1 bg-black/95 border border-neutral-800 rounded-md py-2 w-48 z-50">
               <Link 
                 href="/crawl/rankings" 
                 className="text-white hover:bg-neutral-800 block px-4 py-2"
                 onClick={() => setCrawlDropdownOpen(false)}
               >
-                Crawl Rankings
+                St. Patrick's Day Rankings
               </Link>
             </div>
           )}
         </div>
         
-        {/* Guinness Crawl Links - Mobile (shown directly in mobile menu) */}
+        {/* St. Patrick's Day Links - Mobile (shown directly in mobile menu) */}
         <div className="md:hidden">
           <button 
             onClick={toggleCrawlDropdown}
             className="text-white hover:underline flex items-center"
           >
             <Map className="h-4 w-4 mr-1 text-[#FFC107]" />
-            Guinness Crawl
+            St. Patrick's Day
             {crawlDropdownOpen ? (
               <ChevronUp className="h-4 w-4 ml-1" />
             ) : (
@@ -85,7 +85,7 @@ export function Navbar() {
                 href="/crawl/rankings" 
                 className="text-white hover:underline block"
               >
-                Crawl Rankings
+                St. Patrick's Day Rankings
               </Link>
             </div>
           )}

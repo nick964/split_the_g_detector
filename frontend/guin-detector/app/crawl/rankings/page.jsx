@@ -7,16 +7,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Beer, Trophy, Calendar, Medal, Loader2, Clock, Star, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-function CrawlRankingPage() {
+function StPatricksDayRankingPage() {
   const [rankingsData, setRankingsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  // The specific date for the crawl - March 15, 2025
-  const crawlDate = new Date(2025, 2, 15); // Month is 0-indexed, so 2 = March
+  // The specific date for St. Patrick's Day - March 17, 2025
+  const stPatricksDay = new Date(2025, 2, 17); // Month is 0-indexed, so 2 = March
   
-  // Format the crawl date for display
-  const formattedCrawlDate = crawlDate.toLocaleDateString('en-US', {
+  // Format the St. Patrick's Day date for display
+  const formattedStPatricksDay = stPatricksDay.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -24,19 +24,19 @@ function CrawlRankingPage() {
   });
 
   useEffect(() => {
-    fetchCrawlRankings();
+    fetchStPatricksDayRankings();
   }, []);
 
-  const fetchCrawlRankings = async () => {
+  const fetchStPatricksDayRankings = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Create timestamp range for the crawl date (start and end of day)
-      const startOfDay = new Date(crawlDate);
+      // Create timestamp range for St. Patrick's Day (start and end of day)
+      const startOfDay = new Date(stPatricksDay);
       startOfDay.setHours(13, 0, 0, 0);
       
-      const endOfDay = new Date(crawlDate);
+      const endOfDay = new Date(stPatricksDay);
       endOfDay.setHours(23, 59, 59, 999);
       
       // Get all users first (for better performance than querying each user individually)
@@ -128,7 +128,7 @@ function CrawlRankingPage() {
             <Loader2 className="h-16 w-16 animate-spin text-[#0D3B1A] mb-4" />
             <Beer className="h-8 w-8 text-[#764C25] absolute top-4 left-4" />
           </div>
-          <p className="text-[#0D3B1A] font-semibold">Loading Guinness Crawl Rankings...</p>
+          <p className="text-[#0D3B1A] font-semibold">Loading St. Patrick's Day Rankings...</p>
         </div>
       </div>
     );
@@ -141,7 +141,7 @@ function CrawlRankingPage() {
           <CardHeader className="bg-[#0D3B1A] text-white">
             <CardTitle className="text-2xl font-bold flex items-center">
               <Trophy className="h-6 w-6 text-[#FFC107] mr-2" />
-              Guinness Crawl Rankings
+              St. Patrick's Day Rankings
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -149,7 +149,7 @@ function CrawlRankingPage() {
               {error}
             </div>
             <Button 
-              onClick={() => fetchCrawlRankings()}
+              onClick={() => fetchStPatricksDayRankings()}
               className="bg-[#0D3B1A] text-white hover:bg-[#0A2E14]"
             >
               Try Again
@@ -166,10 +166,12 @@ function CrawlRankingPage() {
       backgroundColor: '#F5F5F5' 
     }}>
       <div className="max-w-4xl mx-auto">
-        {/* Shamrock decorations */}
+        {/* St. Patrick's Day decorations */}
         <div className="relative">
           <div className="absolute -top-6 -left-6 text-[#0D3B1A] text-4xl rotate-[-15deg]">☘️</div>
           <div className="absolute -top-6 -right-6 text-[#0D3B1A] text-4xl rotate-[15deg]">☘️</div>
+          <div className="absolute -top-2 left-1/4 text-3xl rotate-[5deg]">🍀</div>
+          <div className="absolute -top-4 right-1/3 text-3xl rotate-[-10deg]">🇮🇪</div>
         </div>
         
         <Card className="mb-6 border-4 border-[#0D3B1A] shadow-xl overflow-hidden">
@@ -179,13 +181,14 @@ function CrawlRankingPage() {
                 <path d="M12,2C6.47,2 2,6.47 2,12C2,17.53 6.47,22 12,22C17.53,22 22,17.53 22,12C22,6.47 17.53,2 12,2Z" />
               </svg>
             </div>
+            <div className="absolute top-2 right-2 text-2xl">🍀</div>
             <CardTitle className="text-3xl font-bold flex items-center">
               <Trophy className="h-8 w-8 text-[#FFC107] mr-3" />
-              Guinness Crawl Champions
+              St. Patrick's Day Champions
             </CardTitle>
             <div className="flex items-center mt-2 text-gray-200">
               <Calendar className="h-5 w-5 mr-2 text-[#FFC107]" />
-              <p className="italic">{formattedCrawlDate}</p>
+              <p className="italic">{formattedStPatricksDay}</p>
             </div>
           </CardHeader>
           <CardContent className="p-6 bg-gradient-to-b from-[#F5F5F5] to-[#E5E5E5]">
@@ -197,10 +200,10 @@ function CrawlRankingPage() {
               </div>
               <h3 className="text-xl font-bold mb-2 flex items-center">
                 <Star className="h-5 w-5 mr-2 text-[#FFC107]" />
-                Crawl Leaderboard
+                St. Patrick's Day Leaderboard
               </h3>
               <p className="text-gray-200">
-                Current rankings of the Guinness Crawl. Who will be the Guinness Crawl Champion?
+                Current rankings of the St. Patrick's Day celebration. Who will be the St. Patrick's Day Champion?
               </p>
             </div>
             
@@ -209,7 +212,12 @@ function CrawlRankingPage() {
               <div className="space-y-4">
                 {/* Top 3 podium */}
                 {rankingsData.slice(0, 3).length > 0 && (
-                  <div className="flex flex-col md:flex-row gap-4 mb-8">
+                  <div className="flex flex-col md:flex-row gap-4 mb-8 relative">
+                    {/* St. Patrick's Day decorations for podium */}
+                    <div className="absolute -top-6 left-1/4 text-3xl rotate-[-10deg]">☘️</div>
+                    <div className="absolute -top-8 right-1/4 text-3xl rotate-[10deg]">🍀</div>
+                    <div className="absolute -bottom-4 left-1/3 text-2xl rotate-[5deg]">🇮🇪</div>
+                    
                     {/* Create placeholders for missing positions */}
                     {Array.from({ length: 3 }).map((_, index) => {
                       const pour = rankingsData[index];
@@ -236,13 +244,20 @@ function CrawlRankingPage() {
                                 <div className="absolute -top-2 -right-2 text-2xl">
                                   {getMedalEmoji(index)}
                                 </div>
+                                {index === 0 && (
+                                  <div className="absolute -top-4 -left-2 text-xl">👑</div>
+                                )}
                               </div>
                               <h3 className="font-bold text-center">{pour.userName}</h3>
                               <div className="text-xl font-bold text-[#0D3B1A]">
                                 {(pour.score * 100).toFixed(1)}%
                               </div>
-                              <div className={`w-full ${podiumHeights[index]} mt-2 rounded-t-lg bg-gradient-to-t from-[#0D3B1A] to-[#164A2A] flex items-end justify-center`}>
-                                <span className="text-white font-bold mb-2 text-xl">#{index + 1}</span>
+                              <div className={`w-full ${podiumHeights[index]} mt-2 rounded-t-lg bg-gradient-to-t from-[#0D3B1A] to-[#164A2A] flex items-end justify-center relative overflow-hidden`}>
+                                {/* Shamrock pattern on podium */}
+                                <div className="absolute inset-0 opacity-10 flex items-center justify-center">
+                                  <span className="text-white text-4xl">☘️</span>
+                                </div>
+                                <span className="text-white font-bold mb-2 text-xl relative z-10">#{index + 1}</span>
                               </div>
                             </>
                           ) : (
@@ -267,8 +282,10 @@ function CrawlRankingPage() {
                 
                 {/* Rest of the rankings */}
                 <div className="bg-white rounded-lg shadow-md border-2 border-[#0D3B1A] overflow-hidden">
-                  <div className="bg-[#0D3B1A] text-white py-3 px-4 font-bold text-lg">
-                    All Competitors
+                  <div className="bg-[#0D3B1A] text-white py-3 px-4 font-bold text-lg flex items-center">
+                    <span className="mr-2">☘️</span>
+                    All St. Patrick's Day Competitors
+                    <span className="ml-2">☘️</span>
                   </div>
                   
                   <div className="divide-y divide-gray-200">
@@ -373,11 +390,16 @@ function CrawlRankingPage() {
                   <Beer className="h-24 w-24 text-gray-300 absolute inset-0" />
                   <div className="absolute inset-0 flex items-center justify-center text-4xl">☘️</div>
                 </div>
-                <h3 className="text-xl font-bold text-[#0D3B1A] mb-2">No Guinness Pours Yet</h3>
-                <p className="text-gray-600">The competition hasn't started! Check back on {formattedCrawlDate}.</p>
+                <h3 className="text-xl font-bold text-[#0D3B1A] mb-2">No G Splits Yet</h3>
+                <p className="text-gray-600">The celebration hasn't started! Check back later today.</p>
                 <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
-                  Be the first to pour the perfect pint and claim your spot at the top of the leaderboard!
+                  Be the first to split the perfect G and claim your spot at the top of the St. Patrick's Day leaderboard!
                 </p>
+                <div className="flex justify-center mt-4">
+                  <span className="text-2xl mx-1">☘️</span>
+                  <span className="text-2xl mx-1">🍀</span>
+                  <span className="text-2xl mx-1">🇮🇪</span>
+                </div>
               </div>
             )}
             
@@ -385,7 +407,7 @@ function CrawlRankingPage() {
             {rankingsData.length > 0 && (
               <div className="mt-8 flex justify-center">
                 <Button 
-                  onClick={() => fetchCrawlRankings()}
+                  onClick={() => fetchStPatricksDayRankings()}
                   className="bg-[#0D3B1A] text-white hover:bg-[#0A2E14] shadow-md"
                 >
                   <Loader2 className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : 'hidden'}`} />
@@ -396,8 +418,14 @@ function CrawlRankingPage() {
             
             {/* Footer with Irish blessing */}
             <div className="mt-8 text-center italic text-[#0D3B1A] text-sm">
-              <p>"Here's to a long life and a merry one. A quick death and an easy one.</p>
-              <p>A pretty girl and an honest one. A cold beer—and another one!"</p>
+              <div className="flex justify-center mb-2">
+                <span className="text-xl mx-1">☘️</span>
+                <span className="text-xl mx-1">🍀</span>
+                <span className="text-xl mx-1">🇮🇪</span>
+              </div>
+              <p>"May your troubles be less, and your blessings be more,</p>
+              <p>And nothing but happiness come through your door!"</p>
+              <div className="mt-2 text-xs text-[#0D3B1A]/70">Happy St. Patrick's Day! Sláinte! ☘️</div>
             </div>
           </CardContent>
         </Card>
@@ -406,4 +434,4 @@ function CrawlRankingPage() {
   );
 }
 
-export default CrawlRankingPage;
+export default StPatricksDayRankingPage;
