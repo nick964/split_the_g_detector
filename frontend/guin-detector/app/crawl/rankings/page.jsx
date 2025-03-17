@@ -498,7 +498,7 @@ function StPatricksDayRankingPage() {
                               <div className="flex-grow">
                                 <div className="flex items-center text-sm text-gray-700 mb-1">
                                   <Award className="h-4 w-4 mr-1 text-[#FFC107]" />
-                                  <span className="font-medium">Perfect Pour Attempt</span>
+                                  <span className="font-medium">G Split Attempt</span>
                                 </div>
                                 <p className="text-xs text-gray-500 mb-1">
                                   {new Date(pour.timestamp).toLocaleDateString('en-US', {
