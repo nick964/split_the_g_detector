@@ -16,6 +16,23 @@ import InstagramShareButton from "./InstagramShareButton";
       const milliseconds = Math.floor((time % 1000) / 10);
       return `${seconds}.${milliseconds.toString().padStart(2, '0')}s`;
     };
+
+    // Helper function to convert Firestore timestamp to Date
+    const getFormattedDate = (timestamp) => {
+      if (!timestamp) return "Unknown date";
+      
+      // Handle Firestore Timestamp objects
+      if (timestamp && typeof timestamp.toDate === 'function') {
+        return timestamp.toDate().toLocaleString();
+      }
+      
+      // Handle string timestamps for backward compatibility
+      if (typeof timestamp === 'string') {
+        return new Date(timestamp).toLocaleString();
+      }
+      
+      return "Invalid date";
+    };
   
     return (
       <Dialog open={isOpen} onOpenChange={onClose}>
@@ -62,7 +79,7 @@ import InstagramShareButton from "./InstagramShareButton";
   
             {/* Date and Time */}
             <div className="text-sm text-gray-500 text-center">
-              Split on {new Date(pour.timestamp).toLocaleString()}
+              Split on {getFormattedDate(pour.timestamp)}
             </div>
           </div>
         </DialogContent>

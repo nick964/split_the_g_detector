@@ -4,22 +4,34 @@ import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { doc, getDoc, getDocs, collection } from "firebase/firestore";
+import { doc, getDoc, getDocs, deleteDoc, collection, query, where, collectionGroup } from "firebase/firestore";
 import {
   Card,
   CardHeader,
   CardTitle,
   CardContent
 } from "@/components/ui/card";
-import { Beer, Trophy, Clock, Target, ArrowRight } from "lucide-react";
+import { Beer, Trophy, Clock, Target, ArrowRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GuinnessPourModal from "../components/GuinessPourModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { toast } from "@/components/ui/use-toast";
 
 function ProfilePageContent() {
   const { data: session, status } = useSession();
   const [userData, setUserData] = useState(null);
   const [guinnessData, setGuinnessData] = useState([]);
   const [selectedPour, setSelectedPour] = useState(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [pourToDelete, setPourToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [stats, setStats] = useState({
     totalPours: 0,
     averageScore: 0,
@@ -46,61 +58,147 @@ function ProfilePageContent() {
 
   useEffect(() => {
     if (session) {
-      const fetchUserData = async () => {
-        try {
-          const userDocRef = doc(db, "users", session.user.email);
-          const userDoc = await getDoc(userDocRef);
-
-          if (!userDoc.exists()) {
-            throw new Error("User document does not exist");
-          }
-
-          const userData = userDoc.data();
-          setUserData(userData);
-
-          const guinnessCollectionRef = collection(userDocRef, "guinness");
-          const guinnessSnapshot = await getDocs(guinnessCollectionRef);
-
-          const guinnessItems = [];
-          let totalScore = 0;
-          let bestScore = 0;
-          let fastestTime = Infinity;
-
-          guinnessSnapshot.forEach((doc) => {
-            const data = { id: doc.id, ...doc.data() };
-            guinnessItems.push(data);
-            
-            const score = data.score * 100;
-            totalScore += score;
-            bestScore = Math.max(bestScore, score);
-            if (data.sipLength) {
-              fastestTime = Math.min(fastestTime, data.sipLength);
-            }
-          });
-
-          // Sort by timestamp, handling both Firestore Timestamp and string formats
-          setGuinnessData(guinnessItems.sort((a, b) => {
-            const dateA = getDateFromTimestamp(a.timestamp);
-            const dateB = getDateFromTimestamp(b.timestamp);
-            
-            if (!dateA || !dateB) return 0;
-            return dateB - dateA; // Most recent first
-          }));
-          
-          setStats({
-            totalPours: guinnessItems.length,
-            averageScore: guinnessItems.length ? (totalScore / guinnessItems.length).toFixed(1) : 0,
-            bestScore: bestScore.toFixed(1),
-            fastestTime: fastestTime === Infinity ? null : fastestTime,
-          });
-        } catch (error) {
-          console.error("Error fetching user data:", error);
-        }
-      };
-
       fetchUserData();
     }
   }, [session]);
+
+  const fetchUserData = async () => {
+    try {
+      const userDocRef = doc(db, "users", session.user.email);
+      const userDoc = await getDoc(userDocRef);
+
+      if (!userDoc.exists()) {
+        throw new Error("User document does not exist");
+      }
+
+      const userData = userDoc.data();
+      setUserData(userData);
+
+      const guinnessCollectionRef = collection(userDocRef, "guinness");
+      const guinnessSnapshot = await getDocs(guinnessCollectionRef);
+
+      const guinnessItems = [];
+      let totalScore = 0;
+      let bestScore = 0;
+      let fastestTime = Infinity;
+
+      guinnessSnapshot.forEach((doc) => {
+        const data = { id: doc.id, ...doc.data() };
+        guinnessItems.push(data);
+        
+        const score = data.score * 100;
+        totalScore += score;
+        bestScore = Math.max(bestScore, score);
+        if (data.sipLength) {
+          fastestTime = Math.min(fastestTime, data.sipLength);
+        }
+      });
+
+      // Sort by timestamp, handling both Firestore Timestamp and string formats
+      setGuinnessData(guinnessItems.sort((a, b) => {
+        const dateA = getDateFromTimestamp(a.timestamp);
+        const dateB = getDateFromTimestamp(b.timestamp);
+        
+        if (!dateA || !dateB) return 0;
+        return dateB - dateA; // Most recent first
+      }));
+      
+      setStats({
+        totalPours: guinnessItems.length,
+        averageScore: guinnessItems.length ? (totalScore / guinnessItems.length).toFixed(1) : 0,
+        bestScore: bestScore.toFixed(1),
+        fastestTime: fastestTime === Infinity ? null : fastestTime,
+      });
+    } catch (error) {
+      console.error("Error fetching user data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load profile data",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDeleteClick = (e, pour) => {
+    e.stopPropagation(); // Prevent the card click event from triggering
+    setPourToDelete(pour);
+    setDeleteDialogOpen(true);
+  };
+
+  const deletePour = async () => {
+    if (!pourToDelete || !session) return;
+
+    setIsDeleting(true);
+    try {
+      // 1. Delete from user's guinness collection
+      const userDocRef = doc(db, "users", session.user.email);
+      const pourDocRef = doc(collection(userDocRef, "guinness"), pourToDelete.id);
+      await deleteDoc(pourDocRef);
+
+      // 2. Find and delete from bars collection - search by document ID
+      const barsQuery = query(
+        collectionGroup(db, "guinness"),
+        where("id", "==", pourToDelete.id)
+      );
+      
+      const barPourSnapshots = await getDocs(barsQuery);
+      
+      // Delete each matching document in bar guinness collections
+      const barDeletePromises = barPourSnapshots.docs.map(async (docSnapshot) => {
+        // Only delete if it's not the user's document we already deleted
+        if (docSnapshot.ref.path !== pourDocRef.path) {
+          await deleteDoc(docSnapshot.ref);
+        }
+      });
+      
+      await Promise.all(barDeletePromises);
+
+      // 3. Update local state
+      setGuinnessData(prevData => {
+        const newData = prevData.filter(item => item.id !== pourToDelete.id);
+        
+        // Recalculate stats
+        const totalPours = newData.length;
+        let totalScore = 0;
+        let bestScore = 0;
+        let fastestTime = Infinity;
+        
+        newData.forEach(item => {
+          const score = item.score * 100;
+          totalScore += score;
+          bestScore = Math.max(bestScore, score);
+          if (item.sipLength) {
+            fastestTime = Math.min(fastestTime, item.sipLength);
+          }
+        });
+        
+        setStats({
+          totalPours,
+          averageScore: totalPours ? (totalScore / totalPours).toFixed(1) : 0,
+          bestScore: bestScore.toFixed(1),
+          fastestTime: fastestTime === Infinity ? null : fastestTime,
+        });
+        
+        return newData;
+      });
+
+      toast({
+        title: "Success",
+        description: "Guinness pour deleted successfully",
+      });
+    } catch (error) {
+      console.error("Error deleting pour:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete pour",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDeleting(false);
+      setDeleteDialogOpen(false);
+      setPourToDelete(null);
+    }
+  };
 
   const formatTime = (time) => {
     if (!time) return "N/A";
@@ -229,10 +327,12 @@ function ProfilePageContent() {
           {guinnessData.map((item) => (
             <Card 
               key={item.id} 
-              className="overflow-hidden cursor-pointer transition-transform hover:scale-105"
-              onClick={() => setSelectedPour(item)}
+              className="overflow-hidden group relative"
             >
-              <div className="aspect-video relative">
+              <div 
+                className="aspect-video relative cursor-pointer"
+                onClick={() => setSelectedPour(item)}
+              >
                 <img
                   src={item.url}
                   alt={`Pour from ${formatDate(item.timestamp)}`}
@@ -250,9 +350,19 @@ function ProfilePageContent() {
                     </div>
                   )}
                 </div>
-                <p className="text-sm text-gray-500">
-                  {formatDate(item.timestamp)}
-                </p>
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-gray-500">
+                    {formatDate(item.timestamp)}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => handleDeleteClick(e, item)}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-500" />
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           ))}
@@ -277,6 +387,42 @@ function ProfilePageContent() {
         onClose={() => setSelectedPour(null)}
         pour={selectedPour}
       />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete Guinness Pour</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete this pour? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setDeleteDialogOpen(false)}
+              disabled={isDeleting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={deletePour}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isDeleting ? (
+                <>
+                  <div className="animate-spin mr-2 h-4 w-4 border-2 border-white border-t-transparent rounded-full"></div>
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
