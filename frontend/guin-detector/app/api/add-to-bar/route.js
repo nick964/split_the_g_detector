@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { db } from '../../../lib/firebase';
-import { doc, getDoc, updateDoc, collection, addDoc, setDoc, arrayUnion } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, setDoc, arrayUnion, Timestamp } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 const storage = getStorage();
 
@@ -78,7 +78,7 @@ export async function POST(request) {
       letterGrade,
       time,
       imageUrl,
-      timestamp: new Date().toISOString()
+      timestamp: Timestamp.now()
     };
 
     if (barDoc.exists()) {

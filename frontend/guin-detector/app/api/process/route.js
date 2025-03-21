@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../../lib/firebase';
-import { doc, setDoc, getDoc, updateDoc, collection, addDoc, deleteDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, addDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import fetch from 'node-fetch';
 
 const apiKey = process.env.NEXT_PUBLIC_GUINESS_API_KEY;
@@ -95,7 +95,7 @@ export async function POST(request) {
     const guinnessDoc = {
       userId: session.user.email,
       url,
-      timestamp: new Date().toISOString(),
+      timestamp: Timestamp.now(),
       score: analyzeResult.score,
       sipLength: time,
       processedUrl: analyzeResult.processedUrl,
