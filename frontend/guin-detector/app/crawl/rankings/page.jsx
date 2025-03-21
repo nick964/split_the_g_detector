@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where, orderBy, limit, Timestamp } from "firebase/firestore";
+import { collection, collectionGroup, getDocs, getDoc, query, where, orderBy, limit, Timestamp, doc } from "firebase/firestore";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Beer, Trophy, Calendar, Medal, Loader2, Clock, Star, Award, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,35 @@ import { Button } from "@/components/ui/button";
 // Image Modal Component
 const ImageModal = ({ isOpen, onClose, imageUrl, userName, barName, score, timestamp }) => {
   if (!isOpen) return null;
+  
+  // Function to format the timestamp
+  const formatTimestamp = (timestamp) => {
+    if (!timestamp) return 'Unknown Date';
+    
+    // Check if it's a Firestore Timestamp
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate().toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
+    // Fallback for string timestamps
+    if (typeof timestamp === 'string') {
+      return new Date(timestamp).toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
+    return 'Invalid Date';
+  };
   
   return (
     <div 
@@ -64,13 +93,7 @@ const ImageModal = ({ isOpen, onClose, imageUrl, userName, barName, score, times
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">Date & Time</p>
                 <p className="font-medium">
-                  {timestamp ? new Date(timestamp).toLocaleDateString('en-US', {
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  }) : 'Unknown Date'}
+                  {formatTimestamp(timestamp)}
                 </p>
               </div>
               
@@ -88,20 +111,21 @@ const ImageModal = ({ isOpen, onClose, imageUrl, userName, barName, score, times
   );
 };
 
-function StPatricksDayRankingPage() {
+function DailyRankingsPage() {
   const [rankingsData, setRankingsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedImage, setSelectedImage] = useState(null);
-  const [displayCount, setDisplayCount] = useState(100); // Number of items to display initially
-  const [hasMore, setHasMore] = useState(false); // Whether there are more items to load
-  const [allRankings, setAllRankings] = useState([]); // Store all rankings data
+  const [displayCount, setDisplayCount] = useState(100);
+  const [hasMore, setHasMore] = useState(false);
+  const [allRankings, setAllRankings] = useState([]);
   
-  // The specific date for St. Patrick's Day - March 17, 2025
-  const stPatricksDay = new Date(2025, 2, 20); // Month is 0-indexed, so 2 = March
+  // Get today's date
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   
-  // Format the St. Patrick's Day date for display
-  const formattedStPatricksDay = stPatricksDay.toLocaleDateString('en-US', {
+  // Format today's date for display
+  const formattedToday = today.toLocaleDateString('en-US', {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -109,7 +133,7 @@ function StPatricksDayRankingPage() {
   });
 
   useEffect(() => {
-    fetchStPatricksDayRankings();
+    fetchDailyRankings();
   }, []);
 
   // Update displayed rankings when allRankings or displayCount changes
@@ -118,63 +142,54 @@ function StPatricksDayRankingPage() {
     setHasMore(allRankings.length > displayCount);
   }, [allRankings, displayCount]);
 
-  const fetchStPatricksDayRankings = async () => {
+  const fetchDailyRankings = async () => {
     setLoading(true);
     setError(null);
     
     try {
-      // Create timestamp range for St. Patrick's Day (start and end of day)
-      const startOfDay = new Date(stPatricksDay);
+      // Create timestamp range for today (start and end of day)
+      const startOfDay = new Date(today);
       startOfDay.setHours(0, 0, 0, 0);
       
-      const endOfDay = new Date(stPatricksDay);
+      const endOfDay = new Date(today);
       endOfDay.setHours(23, 59, 59, 999);
       
-      // Get all users first (for better performance than querying each user individually)
-      const usersSnapshot = await getDocs(collection(db, "users"));
+      // Use collectionGroup to query all guinness documents across users
+      const guinnessQuery = query(
+        collectionGroup(db, "guinness"),
+        where("timestamp", ">=", Timestamp.fromDate(startOfDay)),
+        where("timestamp", "<=", Timestamp.fromDate(endOfDay))
+      );
+
+      const guinnessSnapshot = await getDocs(guinnessQuery);
+      console.log("Found docs:", guinnessSnapshot.docs.length);
       
-      // Array to store all pours from the crawl date
-      let crawlPours = [];
-      
-      // Create an array of promises for parallel execution
-      const fetchPromises = usersSnapshot.docs.map(async (userDoc) => {
-        const userData = userDoc.data();
-        
-        // Query only guinnesses from the crawl date
-        const guinnessQuery = query(
-          collection(userDoc.ref, "guinness"),
-          where("timestamp", ">=", startOfDay.toISOString()),
-          where("timestamp", "<=", endOfDay.toISOString())
-        );
-        
-        const guinnessSnapshot = await getDocs(guinnessQuery);
-        console.log(guinnessSnapshot.docs);
-        
-        // Return an array of pours for this user
-        return guinnessSnapshot.docs.map(doc => ({
-          ...doc.data(),
-          id: doc.id,
-          userName: userData.name,
-          userImage: userData.image,
-        }));
-      });
-      
-      // Execute all promises in parallel for better performance
-      const results = await Promise.all(fetchPromises);
-      
-      // Flatten the array of arrays
-      crawlPours = results.flat();
-      console.log(crawlPours);
-      
-      // Sort by score (highest first)
-      const sortedPours = crawlPours.sort((a, b) => b.score - a.score);
-      
-      // Store all rankings
+      const results = await Promise.all(
+        guinnessSnapshot.docs.map(async (guinDoc) => {
+          const data = guinDoc.data();
+          
+          // Get the user document reference properly
+          const userPath = guinDoc.ref.parent.parent.path;
+          const userDocRef = doc(db, userPath);
+          const userSnap = await getDoc(userDocRef);
+          
+          const userData = userSnap.exists() ? userSnap.data() : null;
+  
+          return {
+            ...data,
+            id: guinDoc.id,
+            userName: userData?.name ?? "Unknown User",
+            userImage: userData?.image ?? null,
+          };
+        })
+      );
+
+      const sortedPours = results.sort((a, b) => b.score - a.score);
       setAllRankings(sortedPours);
-      // Initial display will be handled by the useEffect
+      
     } catch (err) {
-      console.error("Error fetching crawl rankings:", err);
-      setError("Failed to load crawl rankings. Please try again.");
+      console.error("Error fetching daily rankings:", err);
+      setError("Failed to load daily rankings. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -242,7 +257,7 @@ function StPatricksDayRankingPage() {
             <Loader2 className="h-16 w-16 animate-spin text-[#0D3B1A] mb-4" />
             <Beer className="h-8 w-8 text-[#764C25] absolute top-4 left-4" />
           </div>
-          <p className="text-[#0D3B1A] font-semibold">Loading St. Patrick's Day Rankings...</p>
+          <p className="text-[#0D3B1A] font-semibold">Loading Daily Rankings...</p>
         </div>
       </div>
     );
@@ -255,7 +270,7 @@ function StPatricksDayRankingPage() {
           <CardHeader className="bg-[#0D3B1A] text-white">
             <CardTitle className="text-2xl font-bold flex items-center">
               <Trophy className="h-6 w-6 text-[#FFC107] mr-2" />
-              St. Patrick's Day Rankings
+              Daily Rankings
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -263,7 +278,7 @@ function StPatricksDayRankingPage() {
               {error}
             </div>
             <Button 
-              onClick={() => fetchStPatricksDayRankings()}
+              onClick={() => fetchDailyRankings()}
               className="bg-[#0D3B1A] text-white hover:bg-[#0A2E14]"
             >
               Try Again
@@ -280,7 +295,7 @@ function StPatricksDayRankingPage() {
       backgroundColor: '#F5F5F5' 
     }}>
       <div className="max-w-4xl mx-auto">
-        {/* St. Patrick's Day decorations */}
+        {/* Decorations */}
         <div className="relative">
           <div className="absolute -top-6 -left-6 text-[#0D3B1A] text-4xl rotate-[-15deg]">☘️</div>
           <div className="absolute -top-6 -right-6 text-[#0D3B1A] text-4xl rotate-[15deg]">☘️</div>
@@ -298,11 +313,11 @@ function StPatricksDayRankingPage() {
             <div className="absolute top-2 right-2 text-2xl">🍀</div>
             <CardTitle className="text-3xl font-bold flex items-center">
               <Trophy className="h-8 w-8 text-[#FFC107] mr-3" />
-              St. Patrick's Day Champions
+              Daily Champions
             </CardTitle>
             <div className="flex items-center mt-2 text-gray-200">
               <Calendar className="h-5 w-5 mr-2 text-[#FFC107]" />
-              <p className="italic">{formattedStPatricksDay}</p>
+              <p className="italic">{formattedToday}</p>
             </div>
             {allRankings.length > 0 && (
               <div className="mt-2 text-sm text-gray-200">
@@ -319,10 +334,10 @@ function StPatricksDayRankingPage() {
               </div>
               <h3 className="text-xl font-bold mb-2 flex items-center">
                 <Star className="h-5 w-5 mr-2 text-[#FFC107]" />
-                St. Patrick's Day Leaderboard
+                Daily Leaderboard
               </h3>
               <p className="text-gray-200">
-                Current rankings of the St. Patrick's Day celebration. Who will be the St. Patrick's Day Champion?
+                Current rankings for today. Who will be today's champion?
               </p>
             </div>
             
@@ -332,7 +347,7 @@ function StPatricksDayRankingPage() {
                 {/* Top 3 podium */}
                 {allRankings.slice(0, 3).length > 0 && (
                   <div className="flex flex-col md:flex-row gap-4 mb-8 relative">
-                    {/* St. Patrick's Day decorations for podium */}
+                    {/* Decorations for podium */}
                     <div className="absolute -top-6 left-1/4 text-3xl rotate-[-10deg]">☘️</div>
                     <div className="absolute -top-8 right-1/4 text-3xl rotate-[10deg]">🍀</div>
                     <div className="absolute -bottom-4 left-1/3 text-2xl rotate-[5deg]">🇮🇪</div>
@@ -404,7 +419,7 @@ function StPatricksDayRankingPage() {
                   <div className="bg-[#0D3B1A] text-white py-3 px-4 font-bold text-lg flex items-center justify-between">
                     <div>
                       <span className="mr-2">☘️</span>
-                      All St. Patrick's Day Competitors
+                      Today's Competitors
                       <span className="ml-2">☘️</span>
                     </div>
                     <div className="text-sm font-normal">
@@ -501,13 +516,22 @@ function StPatricksDayRankingPage() {
                                   <span className="font-medium">G Split Attempt</span>
                                 </div>
                                 <p className="text-xs text-gray-500 mb-1">
-                                  {new Date(pour.timestamp).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
+                                  {pour.timestamp && typeof pour.timestamp.toDate === 'function' 
+                                    ? pour.timestamp.toDate().toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })
+                                    : new Date(pour.timestamp).toLocaleDateString('en-US', {
+                                        year: 'numeric',
+                                        month: 'short',
+                                        day: 'numeric',
+                                        hour: '2-digit',
+                                        minute: '2-digit'
+                                      })
+                                  }
                                 </p>
                                 <div className="flex items-center text-xs text-gray-500">
                                   <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 border border-green-200">
@@ -551,9 +575,9 @@ function StPatricksDayRankingPage() {
                   <div className="absolute inset-0 flex items-center justify-center text-4xl">☘️</div>
                 </div>
                 <h3 className="text-xl font-bold text-[#0D3B1A] mb-2">No G Splits Yet</h3>
-                <p className="text-gray-600">The celebration hasn't started! Check back later today.</p>
+                <p className="text-gray-600">No pours recorded today! Check back later.</p>
                 <p className="text-sm text-gray-500 mt-2 max-w-md mx-auto">
-                  Be the first to split the perfect G and claim your spot at the top of the St. Patrick's Day leaderboard!
+                  Be the first to split the perfect G and claim your spot at the top of today's leaderboard!
                 </p>
                 <div className="flex justify-center mt-4">
                   <span className="text-2xl mx-1">☘️</span>
@@ -567,7 +591,7 @@ function StPatricksDayRankingPage() {
             {allRankings.length > 0 && (
               <div className="mt-8 flex justify-center">
                 <Button 
-                  onClick={() => fetchStPatricksDayRankings()}
+                  onClick={() => fetchDailyRankings()}
                   className="bg-[#0D3B1A] text-white hover:bg-[#0A2E14] shadow-md"
                   disabled={loading}
                 >
@@ -577,7 +601,7 @@ function StPatricksDayRankingPage() {
               </div>
             )}
             
-            {/* Footer with Irish blessing */}
+            {/* Footer */}
             <div className="mt-8 text-center italic text-[#0D3B1A] text-sm">
               <div className="flex justify-center mb-2">
                 <span className="text-xl mx-1">☘️</span>
@@ -586,7 +610,7 @@ function StPatricksDayRankingPage() {
               </div>
               <p>"May your troubles be less, and your blessings be more,</p>
               <p>And nothing but happiness come through your door!"</p>
-              <div className="mt-2 text-xs text-[#0D3B1A]/70">Happy St. Patrick's Day! Sláinte! ☘️</div>
+              <div className="mt-2 text-xs text-[#0D3B1A]/70">Sláinte! ☘️</div>
             </div>
           </CardContent>
         </Card>
@@ -608,4 +632,6 @@ function StPatricksDayRankingPage() {
   );
 }
 
-export default StPatricksDayRankingPage;
+export default function RankingsPage() {
+  return <DailyRankingsPage />;
+}

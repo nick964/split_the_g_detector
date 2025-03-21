@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Beer, Menu, X, Trophy, Map, ChevronUp, ChevronDown } from "lucide-react";
+import { Beer, Menu, X, Trophy, Map, ChevronUp, ChevronDown, Award } from "lucide-react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -36,60 +36,6 @@ export function Navbar() {
           Scan Guinness
         </Link>
         
-        {/* St. Patrick's Day Dropdown - Desktop */}
-        <div className="hidden md:block relative">
-          <button 
-            onClick={toggleCrawlDropdown}
-            className="text-white hover:underline flex items-center"
-          >
-            <Map className="h-4 w-4 mr-1 text-[#FFC107]" />
-            St. Patrick's Day
-            {crawlDropdownOpen ? (
-              <ChevronUp className="h-4 w-4 ml-1" />
-            ) : (
-              <ChevronDown className="h-4 w-4 ml-1" />
-            )}
-          </button>
-          
-          {crawlDropdownOpen && (
-            <div className="absolute top-full left-0 mt-1 bg-black/95 border border-neutral-800 rounded-md py-2 w-48 z-50">
-              <Link 
-                href="/crawl/rankings" 
-                className="text-white hover:bg-neutral-800 block px-4 py-2"
-                onClick={() => setCrawlDropdownOpen(false)}
-              >
-                St. Patrick's Day Rankings
-              </Link>
-            </div>
-          )}
-        </div>
-        
-        {/* St. Patrick's Day Links - Mobile (shown directly in mobile menu) */}
-        <div className="md:hidden">
-          <button 
-            onClick={toggleCrawlDropdown}
-            className="text-white hover:underline flex items-center"
-          >
-            <Map className="h-4 w-4 mr-1 text-[#FFC107]" />
-            St. Patrick's Day
-            {crawlDropdownOpen ? (
-              <ChevronUp className="h-4 w-4 ml-1" />
-            ) : (
-              <ChevronDown className="h-4 w-4 ml-1" />
-            )}
-          </button>
-          
-          {crawlDropdownOpen && (
-            <div className="pl-6 mt-2 space-y-2">
-              <Link 
-                href="/crawl/rankings" 
-                className="text-white hover:underline block"
-              >
-                St. Patrick's Day Rankings
-              </Link>
-            </div>
-          )}
-        </div>
       </>
     );
   };
@@ -106,6 +52,11 @@ export function Navbar() {
         <div className="hidden md:flex items-center space-x-4">
           <div className="flex items-center space-x-4">
             <NavLinks />
+            {/* Daily Champs link - visible to all users */}
+            <Link href="/crawl/rankings" className="text-white hover:underline flex items-center">
+              <Award className="h-4 w-4 mr-1 text-[#FFC107]" />
+              Daily Champs
+            </Link>
             {/* Leaderboard link - visible to all users */}
             <Link href="/leaderboard" className="text-white hover:underline flex items-center">
               <Trophy className="h-4 w-4 mr-1 text-[#FFC107]" />
@@ -148,6 +99,11 @@ export function Navbar() {
         <div className="md:hidden bg-black/95 border-b border-neutral-800">
           <div className="flex flex-col space-y-4 p-4">
             <NavLinks />
+            {/* Daily Champs link - visible to all users */}
+            <Link href="/crawl/rankings" className="text-white hover:underline flex items-center">
+              <Trophy className="h-4 w-4 mr-1 text-[#FFC107]" />
+              Daily Champs
+            </Link>
             {/* Leaderboard link - visible to all users */}
             <Link href="/leaderboard" className="text-white hover:underline flex items-center">
               <Trophy className="h-4 w-4 mr-1 text-[#FFC107]" />
