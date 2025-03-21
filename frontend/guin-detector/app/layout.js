@@ -5,6 +5,7 @@ import { Navbar } from "./components/navbar";
 import { Footer } from "./components/Footer";
 import FirebaseAuthProvider from "./auth/FirebaseAuthProvider";
 import { Analytics } from '@vercel/analytics/next';
+import { Toaster } from "@/components/ui/use-toast";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,6 +35,7 @@ export default function RootLayout({ children }) {
               {children}
             </main>
             <Footer />
+            <Toaster />
           </FirebaseAuthProvider>
         </SessionWrapper>
         <Analytics />

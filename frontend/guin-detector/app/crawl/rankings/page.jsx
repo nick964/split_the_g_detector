@@ -98,7 +98,7 @@ function StPatricksDayRankingPage() {
   const [allRankings, setAllRankings] = useState([]); // Store all rankings data
   
   // The specific date for St. Patrick's Day - March 17, 2025
-  const stPatricksDay = new Date(2025, 2, 17); // Month is 0-indexed, so 2 = March
+  const stPatricksDay = new Date(2025, 2, 20); // Month is 0-indexed, so 2 = March
   
   // Format the St. Patrick's Day date for display
   const formattedStPatricksDay = stPatricksDay.toLocaleDateString('en-US', {
@@ -125,7 +125,7 @@ function StPatricksDayRankingPage() {
     try {
       // Create timestamp range for St. Patrick's Day (start and end of day)
       const startOfDay = new Date(stPatricksDay);
-      startOfDay.setHours(10, 0, 0, 0);
+      startOfDay.setHours(0, 0, 0, 0);
       
       const endOfDay = new Date(stPatricksDay);
       endOfDay.setHours(23, 59, 59, 999);

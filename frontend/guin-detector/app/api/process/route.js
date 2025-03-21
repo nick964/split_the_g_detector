@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../../lib/firebase';
-import { doc, setDoc, getDoc, updateDoc, collection, addDoc, deleteObject } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, collection, addDoc, deleteDoc } from 'firebase/firestore';
 import fetch from 'node-fetch';
+
 const apiKey = process.env.NEXT_PUBLIC_GUINESS_API_KEY;
 
 function base64ToUint8Array(base64) {
@@ -101,21 +102,24 @@ export async function POST(request) {
       letterGrade: analyzeResult.letterGrade
     };
 
-    await addDoc(guinnessCollectionRef, guinnessDoc);
+    const docRef = await addDoc(guinnessCollectionRef, guinnessDoc);
+    const docId = docRef.id;
 
-    
     return NextResponse.json({
       success: true,
       message: 'Image processed successfully',
       url: url,
-      analyzeResult: analyzeResult
+      analyzeResult: {
+        ...analyzeResult,
+        guinnessDocId: docId
+      }
     });
 
   } catch (error) {
     console.error('Error processing image:', error);
     if (storageRef) {
       try {
-        await deleteObject(storageRef);
+        await deleteDoc(storageRef);
         console.log('Uploaded image deleted successfully');
       } catch (deleteError) {
         console.error('Error deleting uploaded image:', deleteError);
