@@ -27,6 +27,23 @@ function ProfilePageContent() {
     fastestTime: Infinity,
   });
 
+  // Helper function to convert Firestore timestamp to Date
+  const getDateFromTimestamp = (timestamp) => {
+    if (!timestamp) return null;
+    
+    // Handle Firestore Timestamp objects
+    if (timestamp && typeof timestamp.toDate === 'function') {
+      return timestamp.toDate();
+    }
+    
+    // Handle string timestamps for backward compatibility
+    if (typeof timestamp === 'string') {
+      return new Date(timestamp);
+    }
+    
+    return null;
+  };
+
   useEffect(() => {
     if (session) {
       const fetchUserData = async () => {
@@ -61,7 +78,15 @@ function ProfilePageContent() {
             }
           });
 
-          setGuinnessData(guinnessItems.sort((a, b) => b.timestamp.localeCompare(a.timestamp)));
+          // Sort by timestamp, handling both Firestore Timestamp and string formats
+          setGuinnessData(guinnessItems.sort((a, b) => {
+            const dateA = getDateFromTimestamp(a.timestamp);
+            const dateB = getDateFromTimestamp(b.timestamp);
+            
+            if (!dateA || !dateB) return 0;
+            return dateB - dateA; // Most recent first
+          }));
+          
           setStats({
             totalPours: guinnessItems.length,
             averageScore: guinnessItems.length ? (totalScore / guinnessItems.length).toFixed(1) : 0,
@@ -82,6 +107,12 @@ function ProfilePageContent() {
     const seconds = Math.floor(time / 1000);
     const milliseconds = Math.floor((time % 1000) / 10);
     return `${seconds}.${milliseconds.toString().padStart(2, '0')}s`;
+  };
+
+  // Format date for display
+  const formatDate = (timestamp) => {
+    const date = getDateFromTimestamp(timestamp);
+    return date ? date.toLocaleString() : 'Unknown date';
   };
 
   if (status === "loading") {
@@ -116,7 +147,9 @@ function ProfilePageContent() {
           <h1 className="text-3xl font-bold">{userData?.name}</h1>
           <p className="text-gray-300">{userData?.email}</p>
           <p className="text-sm text-gray-400 mt-2">
-            Member since {new Date(userData?.createdAt?.seconds * 1000).toLocaleDateString()}
+            Member since {userData?.createdAt && userData?.createdAt.seconds ? 
+              new Date(userData.createdAt.seconds * 1000).toLocaleDateString() : 
+              'Unknown date'}
           </p>
         </div>
       </div>
@@ -202,7 +235,7 @@ function ProfilePageContent() {
               <div className="aspect-video relative">
                 <img
                   src={item.url}
-                  alt={`Pour from ${new Date(item.timestamp).toLocaleDateString()}`}
+                  alt={`Pour from ${formatDate(item.timestamp)}`}
                   className="absolute inset-0 w-full h-full object-cover"
                 />
               </div>
@@ -218,7 +251,7 @@ function ProfilePageContent() {
                   )}
                 </div>
                 <p className="text-sm text-gray-500">
-                  {new Date(item.timestamp).toLocaleString()}
+                  {formatDate(item.timestamp)}
                 </p>
               </CardContent>
             </Card>
