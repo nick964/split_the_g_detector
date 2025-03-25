@@ -4,8 +4,11 @@ import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { db, storage } from '../../../lib/firebase';
 import { doc, setDoc, getDoc, updateDoc, collection, addDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import fetch from 'node-fetch';
+import sharp from 'sharp';
 
 const apiKey = process.env.NEXT_PUBLIC_GUINESS_API_KEY;
+const MAX_WIDTH = 800; // Maximum width for resized images
+const JPEG_QUALITY = 80; // JPEG quality (0-100)
 
 function base64ToUint8Array(base64) {
   const binaryString = atob(base64); // Decode Base64 string to binary
@@ -15,6 +18,38 @@ function base64ToUint8Array(base64) {
     bytes[i] = binaryString.charCodeAt(i);
   }
   return bytes;
+}
+
+async function resizeAndCompressImage(imageBuffer, mimeType) {
+  try {
+    // Create a sharp instance from the buffer
+    let sharpImage = sharp(imageBuffer);
+    
+    // Get metadata to check original size
+    const metadata = await sharpImage.metadata();
+    
+    // Only resize if the image is larger than MAX_WIDTH
+    if (metadata.width > MAX_WIDTH) {
+      sharpImage = sharpImage.resize(MAX_WIDTH, null, {
+        fit: 'inside',
+        withoutEnlargement: true
+      });
+    }
+    
+    // Convert all images to JPEG for better compression
+    const compressedImageBuffer = await sharpImage
+      .jpeg({ quality: JPEG_QUALITY })
+      .toBuffer();
+    
+    return {
+      buffer: compressedImageBuffer,
+      mimeType: 'image/jpeg'
+    };
+  } catch (error) {
+    console.error('Error resizing image:', error);
+    // If there's an error during resizing, return the original
+    return { buffer: imageBuffer, mimeType };
+  }
 }
 
 export async function POST(request) {
@@ -48,20 +83,25 @@ export async function POST(request) {
     const base64Data = image.split(',')[1];
     const mimeType = image.match(/data:(.*?);base64/)[1];
     const fileExtension = mimeType.split('/')[1];
-    const fileName = `image_${Date.now()}.${fileExtension}`;
-
+    
     // Convert Base64 to Uint8Array
     const imageBuffer = base64ToUint8Array(base64Data);
+    
+    // Resize and compress the image
+    const { buffer: processedImageBuffer, mimeType: processedMimeType } = 
+      await resizeAndCompressImage(imageBuffer, mimeType);
+    
+    // Always use .jpg extension since we're converting to JPEG
+    const fileName = `image_${Date.now()}.jpg`;
 
     storageRef = ref(storage, 'images/' + fileName);
-    const uploadTask = uploadBytesResumable(storageRef, imageBuffer, {
-      contentType: mimeType
+    const uploadTask = uploadBytesResumable(storageRef, processedImageBuffer, {
+      contentType: processedMimeType
     });
 
     // Wait for the upload to complete
     await uploadTask;
     
-
     // Get the download URL of the uploaded image
     const url = await getDownloadURL(uploadTask.snapshot.ref);
 
