@@ -22,10 +22,11 @@ function formatTime(time) {
   return `${seconds}.${milliseconds.toString().padStart(2, '0')}s`;
 }
 
-function formatDate(dateString) {
-  if (!dateString) return "Unknown date";
+function formatDate(timestamp) {
+  if (!timestamp) return "Unknown date";
   try {
-    const date = new Date(dateString);
+    // Handle Firestore Timestamp by converting to JS Date
+    const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -54,12 +55,51 @@ function BarWallContent() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [pourCount, setPourCount] = useState(0);
 
-  // Get barId from URL on component mount
+  // Get barId from URL or select random bar on component mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const barId = params.get('bar');
+    
     if (barId) {
       fetchBarDetails(barId);
+    } else {
+      // If no bar ID in URL, fetch all bars and select a random one
+      const fetchRandomBar = async () => {
+        try {
+          setLoadingBars(true);
+          const barsCollection = collection(db, "bars");
+          const barsSnapshot = await getDocs(barsCollection);
+          
+          if (!barsSnapshot.empty) {
+            const bars = barsSnapshot.docs.map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }));
+            
+            // Select a random bar
+            const randomBar = bars[Math.floor(Math.random() * bars.length)];
+            
+            // Update URL with the random bar ID
+            const url = new URL(window.location);
+            url.searchParams.set('bar', randomBar.id);
+            window.history.pushState({}, '', url);
+            
+            // Fetch details for the random bar
+            fetchBarDetails(randomBar.id);
+          }
+        } catch (error) {
+          console.error("Error fetching random bar:", error);
+          toast({
+            title: "Error",
+            description: "Failed to load a random bar. Please try again.",
+            variant: "destructive",
+          });
+        } finally {
+          setLoadingBars(false);
+        }
+      };
+      
+      fetchRandomBar();
     }
   }, []);
 
@@ -69,7 +109,7 @@ function BarWallContent() {
       try {
         setLoadingBars(true);
         const barsCollection = collection(db, "bars");
-        const barsQuery = query(barsCollection, orderBy("name"), limit(20));
+        const barsQuery = query(barsCollection, orderBy("name"), limit(50));
         const barsSnapshot = await getDocs(barsQuery);
         
         if (!barsSnapshot.empty) {
@@ -138,6 +178,7 @@ function BarWallContent() {
             barLocation: selectedBar.name
           }));
           
+          console.log("Guinnesses data:", guinnessesData);  
           setBarResults(guinnessesData);
         } else {
           setBarResults([]);
@@ -168,7 +209,6 @@ function BarWallContent() {
           description: "Bar not found.",
           variant: "destructive",
         });
-        setLoading(false);
         return;
       }
       
@@ -176,45 +216,8 @@ function BarWallContent() {
       console.log("Bar data fetched:", barData);
       setSelectedBar(barData);
       
-      // Fetch bar photo if available
-      if (barData.photoName) {
-        try {
-          const photoUrl = await getDownloadURL(ref(storage, `bars/${barData.photoName}`));
-          setBarPhoto(photoUrl);
-        } catch (error) {
-          console.error("Error fetching bar photo:", error);
-          setBarPhoto(null);
-          
-          // Only show toast for permission errors, not for missing files
-          if (error.code === "storage/unauthorized") {
-            toast({
-              title: "Permission Error",
-              description: "Could not access the bar photo. Please contact an administrator.",
-              variant: "default",
-            });
-            
-            console.warn("Firebase Storage Permission Error: Check your Firebase Storage rules to ensure they allow read access to bar photos.");
-          }
-        }
-      } else {
-        setBarPhoto(null);
-      }
-      
-      // Count the pours for this bar
-      try {
-        const poursQuery = query(
-          collection(db, "pours"),
-          where("barId", "==", barId)
-        );
-        const poursSnapshot = await getDocs(poursQuery);
-        setPourCount(poursSnapshot.size);
-      } catch (error) {
-        console.error("Error counting pours:", error);
-        setPourCount(0);
-      }
-      
-      // Fetch pours for this bar
-      await fetchPoursForBar(barId);
+      // Set bar photo if available
+      setBarPhoto(barData.photoUrl || null);
       
     } catch (error) {
       console.error("Error fetching bar details:", error);
@@ -225,60 +228,6 @@ function BarWallContent() {
       });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const fetchPoursForBar = async (barId) => {
-    try {
-      const poursQuery = query(
-        collection(db, "pours"),
-        where("barId", "==", barId),
-        orderBy("timestamp", "desc")
-      );
-      
-      const poursSnapshot = await getDocs(poursQuery);
-      
-      if (poursSnapshot.empty) {
-        console.log("No pours found for this bar");
-        setBarPours([]);
-        return;
-      }
-      
-      const poursData = await Promise.all(
-        poursSnapshot.docs.map(async (doc) => {
-          const pourData = { id: doc.id, ...doc.data() };
-          
-          // Convert timestamp to date if it exists
-          if (pourData.timestamp && pourData.timestamp.toDate) {
-            pourData.date = pourData.timestamp.toDate();
-          }
-          
-          // Fetch user data if available
-          if (pourData.userId) {
-            try {
-              const userDoc = await getDoc(doc(db, "users", pourData.userId));
-              if (userDoc.exists()) {
-                pourData.user = userDoc.data();
-              }
-            } catch (error) {
-              console.error("Error fetching user for pour:", error);
-            }
-          }
-          
-          return pourData;
-        })
-      );
-      
-      console.log("Pours data fetched:", poursData);
-      setBarPours(poursData);
-      
-    } catch (error) {
-      console.error("Error fetching pours for bar:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load pours for this bar.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -379,29 +328,21 @@ function BarWallContent() {
                       {selectedBar.formattedAddress || "No address available"}
                     </p>
                     
-                    <p className="flex items-center mb-2">
-                      <Navigation className="h-5 w-5 mr-2 text-blue-500" />
-                      <span className="font-semibold mr-2">Coordinates:</span>
-                      {selectedBar.latitude && selectedBar.longitude ? 
-                        `${selectedBar.latitude.toFixed(6)}, ${selectedBar.longitude.toFixed(6)}` : 
-                        "No coordinates available"
-                      }
-                    </p>
                   </div>
                   
                   <div>
-                    <p className="flex items-center mb-2">
+                    <div className="flex items-center mb-2">
                       <Hash className="h-5 w-5 mr-2 text-green-500" />
                       <span className="font-semibold mr-2">Pour Count:</span>
-                      <Badge className="bg-[#FFC107] text-black">{pourCount}</Badge>
-                    </p>
+                      <Badge className="bg-[#FFC107] text-black">{barResults.length}</Badge>
+                    </div>
                     
                     {selectedBar.phone && (
-                      <p className="flex items-center mb-2">
+                      <div className="flex items-center mb-2">
                         <Phone className="h-5 w-5 mr-2 text-gray-500" />
                         <span className="font-semibold mr-2">Phone:</span>
                         {selectedBar.phone}
-                      </p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -432,12 +373,27 @@ function BarWallContent() {
         
         {/* Bar Name Sign */}
         {selectedBar && (
-          <div className="relative mb-8 mx-auto w-fit p-4 bg-[#2e1a0e] text-[#FFC107] border-4 border-[#8B4513] rounded shadow-lg transform -rotate-1" style={{
+          <div className="relative mb-8 mx-auto w-fit p-6 bg-[#2e1a0e] text-[#FFC107] border-4 border-[#8B4513] rounded shadow-lg transform -rotate-1" style={{
             boxShadow: "0 4px 8px rgba(0,0,0,0.5)"
           }}>
-            <h2 className="text-2xl font-bold text-center">{selectedBar.name}</h2>
-            <div className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-[#5c3a21] border-2 border-[#8B4513]"></div>
-            <div className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-[#5c3a21] border-2 border-[#8B4513]"></div>
+            <h2 className="text-3xl font-bold text-center font-serif tracking-wide" style={{
+              textShadow: "2px 2px 4px rgba(0,0,0,0.3)",
+              fontFamily: "Playfair Display, Georgia, serif",
+              letterSpacing: "0.05em"
+            }}>
+              {selectedBar.name}
+            </h2>
+            <div className="absolute -top-3 -left-3 w-6 h-6 rounded-full bg-[#5c3a21] border-2 border-[#8B4513]" style={{
+              boxShadow: "2px 2px 4px rgba(0,0,0,0.2)"
+            }}></div>
+            <div className="absolute -top-3 -right-3 w-6 h-6 rounded-full bg-[#5c3a21] border-2 border-[#8B4513]" style={{
+              boxShadow: "2px 2px 4px rgba(0,0,0,0.2)"
+            }}></div>
+            {/* Decorative corners */}
+            <div className="absolute top-2 left-2 w-3 h-3 border-t-2 border-l-2 border-[#FFC107] opacity-40"></div>
+            <div className="absolute top-2 right-2 w-3 h-3 border-t-2 border-r-2 border-[#FFC107] opacity-40"></div>
+            <div className="absolute bottom-2 left-2 w-3 h-3 border-b-2 border-l-2 border-[#FFC107] opacity-40"></div>
+            <div className="absolute bottom-2 right-2 w-3 h-3 border-b-2 border-r-2 border-[#FFC107] opacity-40"></div>
           </div>
         )}
         
@@ -453,13 +409,15 @@ function BarWallContent() {
         
         {/* Results Grid */}
         {!loading && barResults.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 relative">
             {barResults.map((result) => (
-              <Card key={result.id} className="bg-[#f5f5f5] border-0 transform rotate-1 shadow-lg hover:shadow-xl transition-all duration-300" style={{
-                boxShadow: "0 4px 8px rgba(0,0,0,0.3)"
+              <Card key={result.id} 
+                className="bg-[#2e1a0e] border-0 transform hover:-translate-y-1 transition-all duration-300" 
+                style={{
+                  boxShadow: "0 8px 16px rgba(0,0,0,0.4)"
               }}>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-xl flex justify-between items-center">
+                  <CardTitle className="text-xl flex justify-between items-center text-[#FFC107]">
                     <span className="flex items-center">
                       <Trophy className={`h-5 w-5 mr-2 ${
                         result.letterGrade === "A+" ? "text-yellow-500" : 
@@ -469,37 +427,60 @@ function BarWallContent() {
                       }`} />
                       {result.userName || "Anonymous"}
                     </span>
-                    <span className="text-2xl font-bold text-[#FFC107]">{result.letterGrade || "?"}</span>
+                    {/* Enhanced Letter Grade Display */}
+                    <div className="relative w-16 h-16 flex items-center justify-center">
+                      <div className="absolute inset-0 bg-[#FFC107] rounded-full transform rotate-12 opacity-20"></div>
+                      <span className="relative text-4xl font-bold font-serif z-10" style={{
+                        textShadow: "2px 2px 4px rgba(0,0,0,0.3)"
+                      }}>
+                        {result.letterGrade || "?"}
+                      </span>
+                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="pt-0">
-                  <div className="aspect-[3/4] mb-3 overflow-hidden rounded-md">
-                    <img 
-                      src={result.imageUrl || result.url || result.processedUrl || '/placeholder-guinness.jpg'} 
-                      alt="Guinness pour" 
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        console.log("Image failed to load:", e.target.src);
-                        e.target.src = '/placeholder-guinness.jpg';
-                      }}
-                    />
+                  {/* Framed Image */}
+                  <div className="relative p-3 bg-[#5c3a21] rounded-lg shadow-inner mb-4" style={{
+                    boxShadow: "inset 0 0 10px rgba(0,0,0,0.5), 0 4px 8px rgba(0,0,0,0.3)"
+                  }}>
+                    <div className="aspect-[3/4] overflow-hidden rounded-md" style={{
+                      border: "8px solid #8B4513",
+                      boxShadow: "inset 0 0 10px rgba(0,0,0,0.5)"
+                    }}>
+                      <img 
+                        src={result.imageUrl || result.url || result.processedUrl || '/placeholder-guinness.jpg'} 
+                        alt="Guinness pour" 
+                        className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          console.log("Image failed to load:", e.target.src);
+                          e.target.src = '/placeholder-guinness.jpg';
+                        }}
+                      />
+                    </div>
+                    {/* Decorative Nail */}
+                    <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-gray-600 rounded-full" style={{
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.3)"
+                    }}></div>
                   </div>
-                  <div className="space-y-1 text-sm">
-                    <p className="flex items-center">
-                      <Star className="h-4 w-4 mr-1 text-[#FFC107]" />
-                      <span className="font-semibold">Score:</span> {(result.score * 100).toFixed(1)}%
+                  <div className="space-y-2 text-sm text-[#FFC107]">
+                    <p className="flex items-center bg-[#1a0f07] p-2 rounded">
+                      <Star className="h-5 w-5 mr-2 text-yellow-500" />
+                      <span className="font-semibold mr-2">Score:</span> 
+                      <span className="text-lg">{(result.score * 100).toFixed(1)}%</span>
                     </p>
-                    <p className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1 text-gray-500" />
-                      <span className="font-semibold">Time:</span> {formatTime(result.time)}
+                    <p className="flex items-center bg-[#1a0f07] p-2 rounded">
+                      <Clock className="h-5 w-5 mr-2 text-gray-400" />
+                      <span className="font-semibold mr-2">Time:</span> 
+                      <span className="font-mono">{formatTime(result.time)}</span>
                     </p>
-                    <p className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1 text-red-500" />
-                      <span className="font-semibold">Location:</span> {result.barLocation || selectedBar.name}
+                    <p className="flex items-center bg-[#1a0f07] p-2 rounded">
+                      <MapPin className="h-5 w-5 mr-2 text-red-500" />
+                      <span className="font-semibold mr-2">Location:</span> 
+                      <span className="italic">{result.barLocation || selectedBar.name}</span>
                     </p>
                   </div>
                 </CardContent>
-                <CardFooter className="pt-0 text-xs text-gray-500">
+                <CardFooter className="pt-0 text-xs text-[#FFC107] opacity-80 italic">
                   Poured on {formatDate(result.timestamp)}
                 </CardFooter>
               </Card>
@@ -507,16 +488,20 @@ function BarWallContent() {
           </div>
         )}
         
-        {/* Empty State */}
+        {/* Empty State - Updated to match the rustic theme */}
         {!loading && barResults.length === 0 && selectedBar && (
           <div className="text-center py-12 relative">
-            <p className="text-white text-xl font-semibold">No Guinness pours recorded at {selectedBar.name} yet!</p>
-            <p className="text-white mt-2">Be the first to add your pour to the wall.</p>
-            <Link href="/scan">
-              <Button className="mt-4 bg-[#FFC107] text-black hover:bg-[#ffd454]">
-                Record Your Pour
-              </Button>
-            </Link>
+            <div className="bg-[#2e1a0e] p-8 rounded-lg inline-block transform -rotate-1" style={{
+              boxShadow: "0 4px 8px rgba(0,0,0,0.3)"
+            }}>
+              <p className="text-[#FFC107] text-2xl font-serif mb-4">No Guinness pours recorded at {selectedBar.name} yet!</p>
+              <p className="text-[#FFC107] opacity-80 mb-6">Be the first to add your pour to the wall.</p>
+              <Link href="/scan">
+                <Button className="bg-[#FFC107] text-black hover:bg-[#ffd454] transform hover:scale-105 transition-all duration-300">
+                  Record Your Pour
+                </Button>
+              </Link>
+            </div>
           </div>
         )}
       </div>

@@ -104,8 +104,8 @@ export async function POST(request) {
       await setDoc(barDocRef, {
         id: barId,
         name: barName,
-        createdAt: new Date().toISOString(),
-        lastActivity: new Date().toISOString(),
+        createdAt: Timestamp.now(),
+        lastActivity: Timestamp.now(),
         pourCount: 1,
         photoName,
         latitude,
