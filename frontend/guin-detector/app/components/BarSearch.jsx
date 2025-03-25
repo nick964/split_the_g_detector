@@ -144,7 +144,7 @@ export default function BarSearch({ onBarSelect }) {
         
         return {
           id: place.id || Math.random().toString(36).substring(2),
-          name: place.displayName?.text || place.name || 'Unknown Bar',
+          name: place.displayName || place.name || 'Unknown Bar',
           address: place.formattedAddress || place.vicinity || 'No address available',
           latitude: place.latitude || (place.location?.latitude) || null,
           longitude: place.longitude || (place.location?.longitude) || null,
