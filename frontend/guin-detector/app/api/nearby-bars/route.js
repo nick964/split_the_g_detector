@@ -36,7 +36,7 @@ export async function GET(req) {
       headers: {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": API_KEY,
-        "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location,places.id,places.rating",
+        "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location,places.rating,places.id,places.name,places.photos",
       },
       body: JSON.stringify(payload),
     });
@@ -60,7 +60,8 @@ export async function GET(req) {
       latitude: place.location?.latitude,
       longitude: place.location?.longitude,
       rating: place.rating || null,
-      displayName: place.displayName?.text || "Unnamed Bar"
+      displayName: place.displayName?.text || "Unnamed Bar",
+      photoName: getPhotoName(place.photos)
     }));
 
     return NextResponse.json(mappedPlaces, { status: 200 });
@@ -68,4 +69,13 @@ export async function GET(req) {
     console.error("Error fetching nearby bars:", error);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
+}
+
+function getPhotoName(photos) {
+  if (!photos || photos.length === 0) {
+    return null;
+  }
+
+  const photo = photos[0];
+  return photo.name;
 }

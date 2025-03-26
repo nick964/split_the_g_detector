@@ -35,7 +35,6 @@ export function Navbar() {
         <Link href="/scan" className="text-white hover:underline block">
           Scan Guinness
         </Link>
-        
       </>
     );
   };
@@ -57,10 +56,10 @@ export function Navbar() {
               <Award className="h-4 w-4 mr-1 text-[#FFC107]" />
               Daily Champs
             </Link>
-            {/* Leaderboard link - visible to all users */}
-            <Link href="/leaderboard" className="text-white hover:underline flex items-center">
-              <Trophy className="h-4 w-4 mr-1 text-[#FFC107]" />
-              Leaderboard
+            {/* Bar Wall link - visible to all users */}
+            <Link href="/bar-wall" className="text-white hover:underline flex items-center">
+              <Beer className="h-4 w-4 mr-1 text-[#FFC107]" />
+              Bar Wall
             </Link>
           </div>
           {session ? (
@@ -101,13 +100,13 @@ export function Navbar() {
             <NavLinks />
             {/* Daily Champs link - visible to all users */}
             <Link href="/crawl/rankings" className="text-white hover:underline flex items-center">
-              <Trophy className="h-4 w-4 mr-1 text-[#FFC107]" />
+              <Award className="h-4 w-4 mr-1 text-[#FFC107]" />
               Daily Champs
             </Link>
-            {/* Leaderboard link - visible to all users */}
-            <Link href="/leaderboard" className="text-white hover:underline flex items-center">
-              <Trophy className="h-4 w-4 mr-1 text-[#FFC107]" />
-              Leaderboard
+            {/* Bar Wall link - visible to all users */}
+            <Link href="/bar-wall" className="text-white hover:underline flex items-center">
+              <Beer className="h-4 w-4 mr-1 text-[#FFC107]" />
+              Bar Wall
             </Link>
             {session ? (
               <Button

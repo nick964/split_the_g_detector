@@ -14,6 +14,7 @@ import { getDownloadURL, ref } from "firebase/storage";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import Image from "next/image";
+import { Input } from "@/components/ui/input";
 
 function formatTime(time) {
   if (!time) return "N/A";
@@ -54,6 +55,7 @@ function BarWallContent() {
   const [imageLoading, setImageLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [pourCount, setPourCount] = useState(0);
+  const [searchValue, setSearchValue] = useState('');
 
   // Get barId from URL or select random bar on component mount
   useEffect(() => {
@@ -109,7 +111,7 @@ function BarWallContent() {
       try {
         setLoadingBars(true);
         const barsCollection = collection(db, "bars");
-        const barsQuery = query(barsCollection, orderBy("name"), limit(50));
+        const barsQuery = query(barsCollection, orderBy("name"));
         const barsSnapshot = await getDocs(barsQuery);
         
         if (!barsSnapshot.empty) {
@@ -261,31 +263,61 @@ function BarWallContent() {
       <div className="mb-8 text-center">
         <h1 className="text-3xl font-bold mb-4 flex items-center justify-center gap-2">
           <Beer className="h-8 w-8 text-[#FFC107]" />
-          The Guinness Wall of Fame
+          Guinness Bars - Wall of Fame
         </h1>
         <p className="text-gray-600 mb-6">
           Check out the best Guinness splits at your favorite bars!
         </p>
 
         {/* Bar Selection */}
-        <div className="max-w-md mx-auto mb-8">
-          <label htmlFor="barSelect" className="block text-sm font-medium text-gray-700 mb-1">
-            Select a Bar
+        <div className="max-w-md mx-auto mb-8 relative">
+          <label htmlFor="barSearch" className="block text-sm font-medium text-gray-700 mb-1">
+            Search for a Bar
           </label>
-          {availableBars.length > 0 ? (
-            <select
-              id="barSelect"
-              value={selectedBar?.id || ""}
-              onChange={(e) => handleBarChange(e.target.value)}
+          <div className="relative">
+            <Input
+              id="barSearch"
+              type="text"
+              placeholder="Type to search bars..."
+              value={searchValue}
+              onChange={(e) => {
+                setSearchValue(e.target.value);
+                // Clear selection if search value doesn't match selected bar
+                if (selectedBar && !selectedBar.name.toLowerCase().includes(e.target.value.toLowerCase())) {
+                  handleBarChange(null);
+                }
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#FFC107] focus:border-[#FFC107]"
-            >
-              <option value="">-- Select a bar --</option>
-              {availableBars.map(bar => (
-                <option key={bar.id} value={bar.id}>{bar.name}</option>
-              ))}
-            </select>
-          ) : (
-            <div className="text-amber-600 text-sm">
+            />
+            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          </div>
+          
+          {/* Search Results Dropdown */}
+          {searchValue && (
+            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
+              {availableBars
+                .filter(bar => 
+                  bar.name.toLowerCase().includes(searchValue.toLowerCase())
+                )
+                .map(bar => (
+                  <div
+                    key={bar.id}
+                    className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${
+                      selectedBar?.id === bar.id ? 'bg-[#FFC107] hover:bg-[#ffd454]' : ''
+                    }`}
+                    onClick={() => {
+                      handleBarChange(bar.id);
+                      setSearchValue(''); // Clear the search value to close the dropdown
+                    }}
+                  >
+                    {bar.name}
+                  </div>
+                ))}
+            </div>
+          )}
+          
+          {availableBars.length === 0 && (
+            <div className="text-amber-600 text-sm mt-2">
               No bars found in the database. Add your pour to a bar to see it here!
             </div>
           )}

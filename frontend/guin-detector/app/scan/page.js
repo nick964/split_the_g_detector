@@ -20,6 +20,7 @@ import {
   DialogClose,
 } from "@/components/ui/dialog";
 import BarSearch from "../components/BarSearch";
+import Link from "next/link";
 
 function ProcessPageContent() {
   const { data: session, status } = useSession();
@@ -539,24 +540,29 @@ function ProcessPageContent() {
                 )}
                 
                 {addedToBar && (
-                  <div className="mt-4 p-4 bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg border border-green-200 shadow-md flex items-center gap-3 relative overflow-hidden group">
+                  <div className="mt-4 p-4 bg-gradient-to-r from-green-100 to-emerald-100 rounded-lg border border-green-200 shadow-md relative overflow-hidden group">
                     <div className="absolute inset-0 bg-success-pattern opacity-5"></div>
                     <div className="absolute -bottom-2 right-0 text-4xl opacity-20 transform rotate-12 group-hover:scale-110 transition-transform duration-300">
                       🏆
                     </div>
-                    <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
-                      <Check className="h-5 w-5 text-green-600" />
-                    </div>
-                    <div className="flex-grow">
-                      <p className="font-semibold text-green-800">Successfully added to {selectedBar?.name}!</p>
-                      <div className="flex items-center mt-1">
-                        <a 
-                          href="/bar-wall" 
-                          className="text-sm font-medium text-green-700 hover:text-green-900 flex items-center group"
-                        >
-                          View on Bar Wall
-                          <span className="inline-block ml-1 transform group-hover:translate-x-1 transition-transform duration-200">→</span>
-                        </a>
+                    <div className="flex items-start gap-3">
+                      <div className="w-10 h-10 rounded-full bg-green-500/20 flex items-center justify-center flex-shrink-0">
+                        <Check className="h-5 w-5 text-green-600" />
+                      </div>
+                      <div className="flex-grow">
+                        <p className="font-semibold text-green-800">Successfully added to {selectedBar?.name}!</p>
+                        <div className="mt-2 flex items-center justify-between">
+                          <div className="flex items-center space-x-2">
+                            <MapPin className="h-4 w-4 text-gray-500" />
+                            <span className="text-sm text-gray-600">{selectedBar.name}</span>
+                          </div>
+                          <a 
+                            href={`/bar-wall?bar=${selectedBar.id}`}
+                            className="text-sm text-[#FFC107] hover:text-[#ffd454] cursor-pointer z-10 relative"
+                          >
+                            View On Bar Wall
+                          </a>
+                        </div>
                       </div>
                     </div>
                   </div>
