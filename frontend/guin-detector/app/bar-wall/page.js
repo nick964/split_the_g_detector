@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
+import { BarMap } from "@/app/components/BarMap"; 
 
 function formatTime(time) {
   if (!time) return "N/A";
@@ -321,6 +322,26 @@ function BarWallContent() {
               No bars found in the database. Add your pour to a bar to see it here!
             </div>
           )}
+        </div>
+
+        {/* Map Section */}
+        <div className="mb-12">
+          <h2 className="text-3xl font-bold text-center mb-6 font-serif" style={{
+            background: "linear-gradient(45deg, #FFC107, #FFD700)",
+            WebkitBackgroundClip: "text",
+            WebkitTextFillColor: "transparent",
+            textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
+            letterSpacing: "0.05em"
+          }}>
+            Guinnesses Around the World 🌍
+          </h2>
+          <BarMap 
+            bars={availableBars} 
+            onBarSelect={(barId) => {
+              handleBarChange(barId);
+              setSearchValue(''); // Clear the search value
+            }}
+          />
         </div>
       </div>
 
