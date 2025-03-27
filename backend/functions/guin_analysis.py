@@ -25,26 +25,12 @@ def score_to_letter_grade(score):
     Returns:
     - str: The corresponding letter grade.
     """
-    if 92 <= score <= 100:
-        return 'A+'
-    elif 85 <= score <= 91:
+    if 80 <= score <= 100:
         return 'A'
-    elif 80 <= score <= 84:
-        return 'A−'
-    elif 77 <= score <= 79:
-        return 'B+'
-    elif 73 <= score <= 76:
+    elif 60 <= score <= 79:
         return 'B'
-    elif 70 <= score <= 72:
-        return 'B−'
-    elif 67 <= score <= 69:
-        return 'C+'
-    elif 63 <= score <= 66:
+    elif 40 <= score <= 59:
         return 'C'
-    elif 60 <= score <= 62:
-        return 'C−'
-    elif 50 <= score <= 59:
-        return 'D'
     else:
         return 'F'
 

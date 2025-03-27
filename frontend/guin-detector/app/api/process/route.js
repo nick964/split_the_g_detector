@@ -118,6 +118,9 @@ export async function POST(request) {
    
    
     if (!analyzeResponse.ok) {
+      console.log('logging response from analysis - not ok');
+      const analyzeResult = await analyzeResponse.json();
+      console.log(analyzeResult);
       throw new Error('Failed to analyze image');
     }
     console.log('logging response from analysis');
