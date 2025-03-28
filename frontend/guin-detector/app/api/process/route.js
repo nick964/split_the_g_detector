@@ -25,7 +25,7 @@ async function resizeAndCompressImage(imageBuffer, mimeType) {
     // Create a sharp instance from the buffer
     let sharpImage = sharp(imageBuffer);
     
-    // Get metadata to check original size
+    // Get metadata to check original size and orientation
     const metadata = await sharpImage.metadata();
     
     // Only resize if the image is larger than MAX_WIDTH
@@ -36,9 +36,13 @@ async function resizeAndCompressImage(imageBuffer, mimeType) {
       });
     }
     
-    // Convert all images to JPEG for better compression
+    // Convert all images to JPEG for better compression while preserving orientation
     const compressedImageBuffer = await sharpImage
-      .jpeg({ quality: JPEG_QUALITY })
+      .rotate() // This will automatically rotate based on EXIF orientation
+      .jpeg({ 
+        quality: JPEG_QUALITY,
+        withMetadata: true // Preserve metadata including orientation
+      })
       .toBuffer();
     
     return {
