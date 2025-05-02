@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Beer, MapPin, Clock, Trophy, User, Star, Search, Loader2, Navigation, Hash, Phone, Globe } from "lucide-react";
@@ -16,6 +16,13 @@ import { toast } from "@/components/ui/use-toast";
 import Image from "next/image";
 import { Input } from "@/components/ui/input";
 import { BarMap } from "@/app/components/BarMap"; 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 function formatTime(time) {
   if (!time) return "N/A";
@@ -57,6 +64,12 @@ function BarWallContent() {
   const [selectedImage, setSelectedImage] = useState(null);
   const [pourCount, setPourCount] = useState(0);
   const [searchValue, setSearchValue] = useState('');
+  const [isAddBarOpen, setIsAddBarOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedBarToAdd, setSelectedBarToAdd] = useState(null);
+  const [isAddingBar, setIsAddingBar] = useState(false);
+  const [addBarSearchQuery, setAddBarSearchQuery] = useState('');
 
   // Get barId from URL or select random bar on component mount
   useEffect(() => {
@@ -133,10 +146,34 @@ function BarWallContent() {
     fetchBars();
   }, []);
 
+  // Combine debounce and search into a single effect
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!searchValue) {
+        setSearchResults([]);
+        return;
+      }
+
+      const filteredBars = availableBars.filter(bar => 
+        bar.name.toLowerCase().includes(searchValue.toLowerCase())
+      );
+      setSearchResults(filteredBars);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchValue, availableBars]);
+
+  const handleSearchInputChange = useCallback((e) => {
+    const value = e.target.value;
+    setSearchValue(value);
+  }, []);
+
   const handleBarChange = (barId) => {
     if (!barId) {
       setSelectedBar(null);
       setBarPours([]);
+      setSearchValue('');
+      setSearchResults([]);
       window.history.pushState({}, '', pathname);
       return;
     }
@@ -144,6 +181,8 @@ function BarWallContent() {
     const bar = availableBars.find(b => b.id === barId);
     if (bar) {
       setSelectedBar(bar);
+      setSearchValue('');
+      setSearchResults([]);
       
       // Update URL with the selected bar ID
       const url = new URL(window.location);
@@ -248,6 +287,106 @@ function BarWallContent() {
     setImageLoading(false);
   };
 
+  const handleAddBarSearch = async (query) => {
+    if (!query || query.trim().length < 3) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      const response = await fetch(`/api/search-bars?keyWord=${encodeURIComponent(query)}`);
+      
+      if (response.status === 404) {
+        setSearchResults([]);
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error('Failed to search bars');
+      }
+      
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (error) {
+      console.error("Error searching bars:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleAddBar = async () => {
+    if (!selectedBarToAdd) return;
+
+    try {
+      setIsAddingBar(true);
+
+      const response = await fetch('/api/add-to-bar-noguin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          barId: selectedBarToAdd.id,
+          barName: selectedBarToAdd.displayName,
+          photoName: selectedBarToAdd.photoName,
+          latitude: selectedBarToAdd.latitude,
+          longitude: selectedBarToAdd.longitude,
+          formattedAddress: selectedBarToAdd.formattedAddress
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add bar');
+      }
+
+      const data = await response.json();
+      const newBarId = data.barId;
+
+      toast({
+        title: "Success",
+        description: "Bar added successfully!",
+      });
+
+      // Close dialog and reset state
+      setIsAddBarOpen(false);
+      setSelectedBarToAdd(null);
+      setSearchResults([]);
+
+      // Refresh the available bars list
+      const barsCollection = collection(db, "bars");
+      const barsQuery = query(barsCollection, orderBy("name"));
+      const barsSnapshot = await getDocs(barsQuery);
+      
+      if (!barsSnapshot.empty) {
+        const barsData = barsSnapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        }));
+        
+        setAvailableBars(barsData);
+        
+        // Select the newly added bar
+        const newBar = barsData.find(bar => bar.id === newBarId);
+        if (newBar) {
+          handleBarChange(newBarId);
+          setSearchValue(newBar.name);
+        }
+      }
+
+    } catch (error) {
+      console.error("Error adding bar:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add bar. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingBar(false);
+    }
+  };
+
   if (status === "loading" || loadingBars) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -269,80 +408,190 @@ function BarWallContent() {
         <p className="text-gray-600 mb-6">
           Check out the best Guinness splits at your favorite bars!
         </p>
+      </div>
+
+      {/* Map Section */}
+      <div className="mb-12">
+        <h2 className="text-3xl font-bold text-center mb-6 font-serif flex items-center justify-center gap-2" style={{
+          background: "linear-gradient(45deg, #FFC107, #FFD700)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
+          letterSpacing: "0.05em"
+        }}>
+          Guinnesses Around the World
+          <span className="text-2xl" style={{ WebkitTextFillColor: "initial" }}>🌍</span>
+        </h2>
+
+        <div className="h-[400px] rounded-lg overflow-hidden border border-gray-200 mb-6">
+          <BarMap bars={availableBars} onBarSelect={handleBarChange} />
+        </div>
 
         {/* Bar Selection */}
-        <div className="max-w-md mx-auto mb-8 relative">
+        <div className="max-w-md mx-auto mb-8">
           <label htmlFor="barSearch" className="block text-sm font-medium text-gray-700 mb-1">
             Search for a Bar
           </label>
-          <div className="relative">
-            <Input
-              id="barSearch"
-              type="text"
-              placeholder="Type to search bars..."
-              value={searchValue}
-              onChange={(e) => {
-                setSearchValue(e.target.value);
-                // Clear selection if search value doesn't match selected bar
-                if (selectedBar && !selectedBar.name.toLowerCase().includes(e.target.value.toLowerCase())) {
-                  handleBarChange(null);
-                }
-              }}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#FFC107] focus:border-[#FFC107]"
-            />
-            <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+          <div className="relative flex gap-2">
+            <div className="relative flex-1">
+              <Input
+                id="barSearch"
+                type="text"
+                placeholder="Type to search bars..."
+                value={searchValue}
+                onChange={handleSearchInputChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-[#FFC107] focus:border-[#FFC107]"
+              />
+              <Search className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            </div>
           </div>
-          
-          {/* Search Results Dropdown */}
+
+          {/* Search Results */}
           {searchValue && (
-            <div className="absolute z-50 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-              {availableBars
-                .filter(bar => 
-                  bar.name.toLowerCase().includes(searchValue.toLowerCase())
-                )
-                .map(bar => (
-                  <div
-                    key={bar.id}
-                    className={`px-3 py-2 cursor-pointer hover:bg-gray-100 ${
-                      selectedBar?.id === bar.id ? 'bg-[#FFC107] hover:bg-[#ffd454]' : ''
-                    }`}
-                    onClick={() => {
-                      handleBarChange(bar.id);
-                      setSearchValue(''); // Clear the search value to close the dropdown
-                    }}
-                  >
-                    {bar.name}
-                  </div>
-                ))}
+            <div className="mt-4">
+              {searchResults.length > 0 ? (
+                <div className="space-y-2">
+                  {searchResults.map(bar => (
+                    <div
+                      key={bar.id}
+                      className={`p-3 rounded-lg border cursor-pointer transition-colors ${
+                        selectedBar?.id === bar.id 
+                          ? 'bg-[#FFC107] border-[#FFC107] hover:bg-[#ffd454]' 
+                          : 'bg-white border-gray-200 hover:bg-gray-50'
+                      }`}
+                      onClick={() => handleBarChange(bar.id)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <MapPin className="h-4 w-4 text-gray-500" />
+                        <div>
+                          <div className="font-medium">{bar.name}</div>
+                          {bar.formattedAddress && (
+                            <div className="text-sm text-gray-500">{bar.formattedAddress}</div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-gray-500 text-sm mt-2">
+                  No bars found matching "{searchValue}"
+                </div>
+              )}
             </div>
           )}
           
-          {availableBars.length === 0 && (
+          {!searchValue && availableBars.length === 0 && (
             <div className="text-amber-600 text-sm mt-2">
               No bars found in the database. Add your pour to a bar to see it here!
             </div>
           )}
+
+          {/* Add Bar Section */}
+          <div className="mt-8 p-4 bg-gray-50 rounded-lg border border-gray-200">
+            <h3 className="text-lg font-semibold mb-2">Can't Find Your Bar?</h3>
+            <p className="text-gray-600 mb-4">
+              If you don't see your favorite bar in the search results, you can add it to our database. 
+              This will help other Guinness enthusiasts find and rate their pours at your local spot.
+            </p>
+            <Button
+              variant="outline"
+              className="flex items-center gap-2 bg-white hover:bg-gray-50"
+              onClick={() => setIsAddBarOpen(true)}
+            >
+              <MapPin className="h-4 w-4" />
+              Add Your Bar
+            </Button>
+          </div>
         </div>
 
-        {/* Map Section */}
-        <div className="mb-12">
-          <h2 className="text-3xl font-bold text-center mb-6 font-serif" style={{
-            background: "linear-gradient(45deg, #FFC107, #FFD700)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            textShadow: "2px 2px 4px rgba(0,0,0,0.1)",
-            letterSpacing: "0.05em"
-          }}>
-            Guinnesses Around the World 🌍
-          </h2>
-          <BarMap 
-            bars={availableBars} 
-            onBarSelect={(barId) => {
-              handleBarChange(barId);
-              setSearchValue(''); // Clear the search value
-            }}
-          />
-        </div>
+        {/* Add Bar Search Interface */}
+        {isAddBarOpen && (
+          <div className="p-4 bg-white rounded-lg shadow-lg border border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold">Add New Bar</h3>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsAddBarOpen(false);
+                  setAddBarSearchQuery('');
+                  setSearchResults([]);
+                  setSelectedBarToAdd(null);
+                }}
+              >
+                ✕
+              </Button>
+            </div>
+            
+            <div className="relative mb-4">
+              <Input
+                value={addBarSearchQuery}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  setAddBarSearchQuery(value);
+                  handleAddBarSearch(value);
+                }}
+                placeholder="Search for a bar..."
+                className="pl-10"
+              />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-gray-400" />
+              )}
+            </div>
+
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div className="max-h-60 overflow-auto rounded-md border bg-white shadow-lg">
+                {searchResults.map((bar) => (
+                  <div
+                    key={bar.id}
+                    onClick={() => setSelectedBarToAdd(bar)}
+                    className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                      selectedBarToAdd?.id === bar.id ? 'bg-[#FFC107] hover:bg-[#ffd454]' : ''
+                    }`}
+                  >
+                    <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <div>
+                      <div className="font-medium">{bar.displayName}</div>
+                      <div className="text-sm text-gray-500">{bar.formattedAddress}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Selected Bar Details */}
+            {selectedBarToAdd && (
+              <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                <h3 className="font-semibold">{selectedBarToAdd.displayName}</h3>
+                <p className="text-sm text-gray-600">{selectedBarToAdd.formattedAddress}</p>
+                <Button
+                  className="mt-4 w-full bg-[#FFC107] text-black hover:bg-[#ffd454]"
+                  onClick={handleAddBar}
+                  disabled={isAddingBar}
+                >
+                  {isAddingBar ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding Bar...
+                    </>
+                  ) : (
+                    'Add Bar'
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* No Results Message */}
+            {searchValue && searchValue.length >= 3 && !isSearching && searchResults.length === 0 && (
+              <div className="text-sm text-gray-500 mt-2 text-center py-2">
+                No bars found matching "{searchValue}"
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Bar Information Card */}

@@ -11,7 +11,7 @@ import {
   CardTitle,
   CardContent
 } from "@/components/ui/card";
-import { Beer, Trophy, Clock, Target, ArrowRight, Trash2 } from "lucide-react";
+import { Beer, Trophy, Clock, Target, ArrowRight, Trash2, Search, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import GuinnessPourModal from "../components/GuinessPourModal";
 import {
@@ -23,6 +23,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/use-toast";
+import { Input } from "@/components/ui/input";
 
 function ProfilePageContent() {
   const { data: session, status } = useSession();
@@ -38,6 +39,13 @@ function ProfilePageContent() {
     bestScore: 0,
     fastestTime: Infinity,
   });
+  const [isAddToBarOpen, setIsAddToBarOpen] = useState(false);
+  const [selectedPourForBar, setSelectedPourForBar] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [selectedBar, setSelectedBar] = useState(null);
+  const [isAddingToBar, setIsAddingToBar] = useState(false);
 
   // Helper function to convert Firestore timestamp to Date
   const getDateFromTimestamp = (timestamp) => {
@@ -74,8 +82,13 @@ function ProfilePageContent() {
       const userData = userDoc.data();
       setUserData(userData);
 
-      const guinnessCollectionRef = collection(userDocRef, "guinness");
-      const guinnessSnapshot = await getDocs(guinnessCollectionRef);
+      // Use collectionGroup to query all guinness documents across users
+      const guinnessQuery = query(
+        collectionGroup(db, "guinness"),
+        where("userId", "==", session.user.email)
+      );
+
+      const guinnessSnapshot = await getDocs(guinnessQuery);
 
       const guinnessItems = [];
       let totalScore = 0;
@@ -211,6 +224,94 @@ function ProfilePageContent() {
   const formatDate = (timestamp) => {
     const date = getDateFromTimestamp(timestamp);
     return date ? date.toLocaleString() : 'Unknown date';
+  };
+
+  const handleSearch = async (query) => {
+    if (!query || query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    try {
+      setIsSearching(true);
+      const response = await fetch(`/api/search-bars?keyWord=${encodeURIComponent(query)}`);
+      
+      if (response.status === 404) {
+        setSearchResults([]);
+        return;
+      }
+      
+      if (!response.ok) {
+        throw new Error('Failed to search bars');
+      }
+      
+      const data = await response.json();
+      setSearchResults(data);
+    } catch (error) {
+      console.error("Error searching bars:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const handleAddToBar = async () => {
+    if (!selectedBar || !selectedPourForBar || !session) return;
+
+    try {
+      setIsAddingToBar(true);
+
+      const response = await fetch('/api/add-to-bar', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          userId: session.user.email,
+          userName: userData?.name || 'Anonymous',
+          barId: selectedBar.id,
+          barName: selectedBar.displayName,
+          guinnessId: selectedPourForBar.id,
+          score: selectedPourForBar.score,
+          letterGrade: selectedPourForBar.letterGrade,
+          time: selectedPourForBar.sipLength,
+          imageUrl: selectedPourForBar.imageUrl || selectedPourForBar.url,
+          photoName: selectedBar.photoName,
+          latitude: selectedBar.latitude,
+          longitude: selectedBar.longitude,
+          formattedAddress: selectedBar.formattedAddress
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to add to bar');
+      }
+
+      toast({
+        title: "Success",
+        description: "Guinness pour added to bar successfully!",
+      });
+
+      // Close dialog and reset state
+      setIsAddToBarOpen(false);
+      setSelectedPourForBar(null);
+      setSelectedBar(null);
+      setSearchQuery('');
+      setSearchResults([]);
+
+      // Refresh the data to show the updated bar name
+      await fetchUserData();
+
+    } catch (error) {
+      console.error("Error adding to bar:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add pour to bar. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsAddingToBar(false);
+    }
   };
 
   if (status === "loading") {
@@ -350,18 +451,35 @@ function ProfilePageContent() {
                     </div>
                   )}
                 </div>
-                <div className="flex justify-between items-center">
+                <div className="flex flex-col gap-2">
                   <p className="text-sm text-gray-500">
                     {formatDate(item.timestamp)}
                   </p>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => handleDeleteClick(e, item)}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-500" />
-                  </Button>
+                  <div className="flex justify-between items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-1 text-black hover:text-gray-700 hover:bg-gray-100 min-w-0 flex-1"
+                      onClick={() => {
+                        setSelectedPourForBar(item);
+                        setIsAddToBarOpen(true);
+                      }}
+                    >
+                      <MapPin className="h-4 w-4 text-[#FFC107] flex-shrink-0" />
+                      <span className="truncate">
+                        {item.barName ? item.barName : "Add To Bar!"}
+                      </span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="flex items-center gap-1 text-red-500 hover:text-red-600 hover:bg-red-50 flex-shrink-0"
+                      onClick={(e) => handleDeleteClick(e, item)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Delete split
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -387,6 +505,85 @@ function ProfilePageContent() {
         onClose={() => setSelectedPour(null)}
         pour={selectedPour}
       />
+
+      {/* Add to Bar Dialog */}
+      <Dialog open={isAddToBarOpen} onOpenChange={setIsAddToBarOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Add to Bar</DialogTitle>
+            <DialogDescription>
+              Search for a bar to add your Guinness pour
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="relative">
+              <Input
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  handleSearch(e.target.value);
+                }}
+                placeholder="Search for a bar..."
+                className="pl-10"
+              />
+              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              {isSearching && (
+                <Loader2 className="absolute right-3 top-2.5 h-4 w-4 animate-spin text-gray-400" />
+              )}
+            </div>
+
+            {/* Search Results */}
+            {searchResults.length > 0 && (
+              <div className="mt-4 max-h-60 overflow-auto rounded-md border bg-white shadow-lg">
+                {searchResults.map((bar) => (
+                  <div
+                    key={bar.id}
+                    onClick={() => setSelectedBar(bar)}
+                    className={`flex items-center gap-2 px-4 py-2 hover:bg-gray-100 cursor-pointer ${
+                      selectedBar?.id === bar.id ? 'bg-[#FFC107] hover:bg-[#ffd454]' : ''
+                    }`}
+                  >
+                    <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                    <div>
+                      <div className="font-medium">{bar.displayName}</div>
+                      <div className="text-sm text-gray-500">{bar.formattedAddress}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Selected Bar Details */}
+            {selectedBar && (
+              <div className="mt-4 p-4 border rounded-lg bg-gray-50">
+                <h3 className="font-semibold">{selectedBar.displayName}</h3>
+                <p className="text-sm text-gray-600">{selectedBar.formattedAddress}</p>
+                <Button
+                  className="mt-4 w-full bg-[#FFC107] text-black hover:bg-[#ffd454]"
+                  onClick={handleAddToBar}
+                  disabled={isAddingToBar}
+                >
+                  {isAddingToBar ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Adding to Bar...
+                    </>
+                  ) : (
+                    'Add to Bar'
+                  )}
+                </Button>
+              </div>
+            )}
+
+            {/* No Results Message */}
+            {searchQuery && searchQuery.length >= 2 && !isSearching && searchResults.length === 0 && (
+              <div className="text-sm text-gray-500 mt-2 text-center py-2">
+                No bars found matching "{searchQuery}"
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
