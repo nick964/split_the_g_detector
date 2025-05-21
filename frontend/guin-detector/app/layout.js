@@ -6,6 +6,7 @@ import { Footer } from "./components/Footer";
 import FirebaseAuthProvider from "./auth/FirebaseAuthProvider";
 import { Analytics } from '@vercel/analytics/next';
 import { Toaster } from "@/components/ui/use-toast";
+import Script from 'next/script';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -25,6 +26,14 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en">
+      <head>
+        <Script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8223624320389984"
+          strategy="afterInteractive"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
       >
