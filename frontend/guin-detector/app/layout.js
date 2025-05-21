@@ -33,6 +33,7 @@ export default function RootLayout({ children }) {
           strategy="afterInteractive"
           crossOrigin="anonymous"
         />
+        <meta name="google-adsense-account" content="ca-pub-8223624320389984"></meta>
       </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased flex flex-col min-h-screen`}
