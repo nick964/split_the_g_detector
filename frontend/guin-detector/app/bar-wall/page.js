@@ -9,7 +9,7 @@ import { signIn } from "next-auth/react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { db, storage } from "@/lib/firebase";
-import { collection, getDocs, doc, getDoc, query, orderBy, limit, where } from "firebase/firestore";
+import { collection, getDocs, doc, getDoc, query, orderBy, limit, where, documentId, startAt } from "firebase/firestore";
 import { getDownloadURL, ref } from "firebase/storage";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/components/ui/use-toast";
@@ -71,6 +71,22 @@ function BarWallContent() {
   const [isAddingBar, setIsAddingBar] = useState(false);
   const [addBarSearchQuery, setAddBarSearchQuery] = useState('');
 
+  const summarizeBar = (docSnapshot) => {
+    const data = docSnapshot.data();
+
+    const latitude = typeof data?.latitude === "number" ? data.latitude : null;
+    const longitude = typeof data?.longitude === "number" ? data.longitude : null;
+
+    return {
+      id: docSnapshot.id,
+      name: data?.name || "Unknown Bar",
+      formattedAddress: data?.formattedAddress || data?.address || "",
+      latitude,
+      longitude,
+      hasPhoto: Boolean(data?.photoUrl),
+    };
+  };
+
   // Get barId from URL or select random bar on component mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -83,25 +99,49 @@ function BarWallContent() {
       const fetchRandomBar = async () => {
         try {
           setLoadingBars(true);
-          const barsCollection = collection(db, "bars");
-          const barsSnapshot = await getDocs(barsCollection);
-          
+          const barsCollectionRef = collection(db, "bars");
+
+          // Firestore document IDs for auto-generated docs are uniformly distributed.
+          // Generate a random possible ID and start the query from there.
+          const randomDocId = Math.random().toString(36).slice(2);
+
+          const randomQuery = query(
+            barsCollectionRef,
+            orderBy(documentId()),
+            startAt(randomDocId),
+            limit(1)
+          );
+
+          let barsSnapshot = await getDocs(randomQuery);
+
+          // If no document exists after that ID, wrap to the first document.
+          if (barsSnapshot.empty) {
+            const fallbackQuery = query(
+              barsCollectionRef,
+              orderBy(documentId()),
+              limit(1)
+            );
+            barsSnapshot = await getDocs(fallbackQuery);
+          }
+
           if (!barsSnapshot.empty) {
-            const bars = barsSnapshot.docs.map(doc => ({
-              id: doc.id,
-              ...doc.data()
-            }));
-            
-            // Select a random bar
-            const randomBar = bars[Math.floor(Math.random() * bars.length)];
-            
-            // Update URL with the random bar ID
+            const docSnapshot = barsSnapshot.docs[0];
+            const randomBar = {
+              id: docSnapshot.id,
+              ...docSnapshot.data(),
+            };
+
             const url = new URL(window.location);
             url.searchParams.set('bar', randomBar.id);
             window.history.pushState({}, '', url);
-            
-            // Fetch details for the random bar
+
             fetchBarDetails(randomBar.id);
+          } else {
+            toast({
+              title: "Error",
+              description: "No bars available to select.",
+              variant: "destructive",
+            });
           }
         } catch (error) {
           console.error("Error fetching random bar:", error);
@@ -129,11 +169,10 @@ function BarWallContent() {
         const barsSnapshot = await getDocs(barsQuery);
         
         if (!barsSnapshot.empty) {
-          const barsData = barsSnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-          }));
-          
+          const barsData = barsSnapshot.docs
+            .map(summarizeBar)
+            .filter(bar => bar.latitude !== null && bar.longitude !== null);
+
           setAvailableBars(barsData);
         }
       } catch (error) {
@@ -360,11 +399,10 @@ function BarWallContent() {
       const barsSnapshot = await getDocs(barsQuery);
       
       if (!barsSnapshot.empty) {
-        const barsData = barsSnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data()
-        }));
-        
+        const barsData = barsSnapshot.docs
+          .map(summarizeBar)
+          .filter(bar => bar.latitude !== null && bar.longitude !== null);
+
         setAvailableBars(barsData);
         
         // Select the newly added bar
