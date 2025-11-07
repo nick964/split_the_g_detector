@@ -1,7 +1,7 @@
 "use client";
 
 import { useSession } from "next-auth/react";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Beer, MapPin, Clock, Trophy, User, Star, Search, Loader2, Navigation, Hash, Phone, Globe } from "lucide-react";
@@ -65,11 +65,55 @@ function BarWallContent() {
   const [pourCount, setPourCount] = useState(0);
   const [searchValue, setSearchValue] = useState('');
   const [isAddBarOpen, setIsAddBarOpen] = useState(false);
-  const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedBarToAdd, setSelectedBarToAdd] = useState(null);
   const [isAddingBar, setIsAddingBar] = useState(false);
   const [addBarSearchQuery, setAddBarSearchQuery] = useState('');
+  const [addBarResults, setAddBarResults] = useState([]);
+
+  const filteredBars = useMemo(() => {
+    const term = searchValue.trim().toLowerCase();
+    if (!term) return [];
+
+    const matches = availableBars.filter((bar) => {
+      const nameMatch = bar.name?.toLowerCase().includes(term);
+      const addressMatch = bar.formattedAddress?.toLowerCase().includes(term);
+      return nameMatch || addressMatch;
+    });
+
+    return matches.slice(0, 10);
+  }, [searchValue, availableBars]);
+
+  const fetchBarDetails = useCallback(async (barId) => {
+    try {
+      setLoading(true);
+
+      const barDoc = await getDoc(doc(db, "bars", barId));
+
+      if (!barDoc.exists()) {
+        console.error("No bar found with ID:", barId);
+        toast({
+          title: "Error",
+          description: "Bar not found.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const barData = { id: barDoc.id, ...barDoc.data() };
+      setSelectedBar(barData);
+      setBarPhoto(barData.photoUrl || null);
+    } catch (error) {
+      console.error("Error fetching bar details:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load bar details. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   const summarizeBar = (docSnapshot) => {
     const data = docSnapshot.data();
@@ -157,7 +201,7 @@ function BarWallContent() {
       
       fetchRandomBar();
     }
-  }, []);
+  }, [fetchBarDetails]);
 
   // Fetch all available bars from Firebase
   useEffect(() => {
@@ -185,34 +229,16 @@ function BarWallContent() {
     fetchBars();
   }, []);
 
-  // Combine debounce and search into a single effect
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (!searchValue) {
-        setSearchResults([]);
-        return;
-      }
-
-      const filteredBars = availableBars.filter(bar => 
-        bar.name.toLowerCase().includes(searchValue.toLowerCase())
-      );
-      setSearchResults(filteredBars);
-    }, 300);
-
-    return () => clearTimeout(timer);
-  }, [searchValue, availableBars]);
-
   const handleSearchInputChange = useCallback((e) => {
     const value = e.target.value;
     setSearchValue(value);
   }, []);
 
-  const handleBarChange = (barId) => {
+  const handleBarChange = useCallback((barId) => {
     if (!barId) {
       setSelectedBar(null);
       setBarPours([]);
       setSearchValue('');
-      setSearchResults([]);
       window.history.pushState({}, '', pathname);
       return;
     }
@@ -221,7 +247,6 @@ function BarWallContent() {
     if (bar) {
       setSelectedBar(bar);
       setSearchValue('');
-      setSearchResults([]);
       
       // Update URL with the selected bar ID
       const url = new URL(window.location);
@@ -231,7 +256,7 @@ function BarWallContent() {
       // Fetch bar details
       fetchBarDetails(barId);
     }
-  };
+  }, [availableBars, pathname, fetchBarDetails]);
 
   // Fetch Guinness pours for the selected bar
   useEffect(() => {
@@ -275,43 +300,6 @@ function BarWallContent() {
     fetchBarGuinnesses();
   }, [selectedBar]);
 
-  const fetchBarDetails = async (barId) => {
-    try {
-      setLoading(true);
-      console.log("Fetching bar details for ID:", barId);
-
-      // Get bar document
-      const barDoc = await getDoc(doc(db, "bars", barId));
-      
-      if (!barDoc.exists()) {
-        console.error("No bar found with ID:", barId);
-        toast({
-          title: "Error",
-          description: "Bar not found.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const barData = { id: barDoc.id, ...barDoc.data() };
-      console.log("Bar data fetched:", barData);
-      setSelectedBar(barData);
-      
-      // Set bar photo if available
-      setBarPhoto(barData.photoUrl || null);
-      
-    } catch (error) {
-      console.error("Error fetching bar details:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load bar details. Please try again.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handlePourClick = (pour) => {
     setSelectedPour(pour);
     if (pour.imageUrl) {
@@ -328,7 +316,7 @@ function BarWallContent() {
 
   const handleAddBarSearch = async (query) => {
     if (!query || query.trim().length < 3) {
-      setSearchResults([]);
+      setAddBarResults([]);
       return;
     }
 
@@ -337,7 +325,7 @@ function BarWallContent() {
       const response = await fetch(`/api/search-bars?keyWord=${encodeURIComponent(query)}`);
       
       if (response.status === 404) {
-        setSearchResults([]);
+        setAddBarResults([]);
         return;
       }
       
@@ -346,10 +334,10 @@ function BarWallContent() {
       }
       
       const data = await response.json();
-      setSearchResults(data);
+      setAddBarResults(data);
     } catch (error) {
       console.error("Error searching bars:", error);
-      setSearchResults([]);
+      setAddBarResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -391,7 +379,7 @@ function BarWallContent() {
       // Close dialog and reset state
       setIsAddBarOpen(false);
       setSelectedBarToAdd(null);
-      setSearchResults([]);
+      setAddBarResults([]);
 
       // Refresh the available bars list
       const barsCollection = collection(db, "bars");
@@ -487,9 +475,9 @@ function BarWallContent() {
           {/* Search Results */}
           {searchValue && (
             <div className="mt-4">
-              {searchResults.length > 0 ? (
+              {filteredBars.length > 0 ? (
                 <div className="space-y-2">
-                  {searchResults.map(bar => (
+                  {filteredBars.map(bar => (
                     <div
                       key={bar.id}
                       className={`p-3 rounded-lg border cursor-pointer transition-colors ${
@@ -554,7 +542,7 @@ function BarWallContent() {
                 onClick={() => {
                   setIsAddBarOpen(false);
                   setAddBarSearchQuery('');
-                  setSearchResults([]);
+                  setAddBarResults([]);
                   setSelectedBarToAdd(null);
                 }}
               >
@@ -580,9 +568,9 @@ function BarWallContent() {
             </div>
 
             {/* Search Results */}
-            {searchResults.length > 0 && (
+            {addBarResults.length > 0 && (
               <div className="max-h-60 overflow-auto rounded-md border bg-white shadow-lg">
-                {searchResults.map((bar) => (
+                {addBarResults.map((bar) => (
                   <div
                     key={bar.id}
                     onClick={() => setSelectedBarToAdd(bar)}
@@ -623,9 +611,9 @@ function BarWallContent() {
             )}
 
             {/* No Results Message */}
-            {searchValue && searchValue.length >= 3 && !isSearching && searchResults.length === 0 && (
+            {addBarSearchQuery && addBarSearchQuery.length >= 3 && !isSearching && addBarResults.length === 0 && (
               <div className="text-sm text-gray-500 mt-2 text-center py-2">
-                No bars found matching "{searchValue}"
+                No bars found matching "{addBarSearchQuery}"
               </div>
             )}
           </div>
