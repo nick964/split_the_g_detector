@@ -8,9 +8,10 @@ import { Beer } from 'lucide-react';
 // Replace with your Mapbox access token
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
-export function BarMap({ bars, onBarSelect }) {
+export function BarMap({ bars, onBarSelect, selectedBarId }) {
   const mapContainer = useRef(null);
   const map = useRef(null);
+  const markersRef = useRef([]);
   const [selectedBar, setSelectedBar] = useState(null);
 
   useEffect(() => {
@@ -38,6 +39,10 @@ export function BarMap({ bars, onBarSelect }) {
   useEffect(() => {
     if (!map.current || !bars) return;
 
+    // Remove existing markers before adding new ones
+    markersRef.current.forEach(marker => marker.remove());
+    markersRef.current = [];
+
     // Add markers for each bar
     bars.forEach(bar => {
       if (!bar.latitude || !bar.longitude) return;
@@ -48,7 +53,7 @@ export function BarMap({ bars, onBarSelect }) {
       el.innerHTML = `<div class="marker-content"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#FFC107" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/></svg></div>`;
       
       // Add marker to map
-      new mapboxgl.Marker(el)
+      const marker = new mapboxgl.Marker(el)
         .setLngLat([bar.longitude, bar.latitude])
         .setPopup(
           new mapboxgl.Popup({ offset: 25 })
@@ -66,6 +71,8 @@ export function BarMap({ bars, onBarSelect }) {
             `)
         )
         .addTo(map.current);
+
+      markersRef.current.push(marker);
     });
 
     // Fit bounds to show all markers
@@ -91,6 +98,20 @@ export function BarMap({ bars, onBarSelect }) {
       delete window.handleBarSelect;
     };
   }, [bars, onBarSelect]);
+
+  useEffect(() => {
+    if (!map.current || !selectedBarId) return;
+
+    const bar = bars?.find((b) => b.id === selectedBarId);
+    if (!bar || !bar.latitude || !bar.longitude) return;
+
+    map.current.flyTo({
+      center: [bar.longitude, bar.latitude],
+      zoom: 14,
+      essential: true,
+      speed: 1.2,
+    });
+  }, [selectedBarId, bars]);
 
   return (
     <div className="w-full h-[400px] rounded-lg overflow-hidden shadow-lg">

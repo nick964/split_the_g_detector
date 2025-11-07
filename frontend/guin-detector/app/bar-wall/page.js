@@ -145,9 +145,18 @@ function BarWallContent() {
           setLoadingBars(true);
           const barsCollectionRef = collection(db, "bars");
 
+          const randomFirestoreId = () => {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let id = '';
+            for (let i = 0; i < 20; i++) {
+              id += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return id;
+          };
+
           // Firestore document IDs for auto-generated docs are uniformly distributed.
           // Generate a random possible ID and start the query from there.
-          const randomDocId = Math.random().toString(36).slice(2);
+          const randomDocId = randomFirestoreId();
 
           const randomQuery = query(
             barsCollectionRef,
@@ -450,7 +459,11 @@ function BarWallContent() {
         </h2>
 
         <div className="h-[400px] rounded-lg overflow-hidden border border-gray-200 mb-6">
-          <BarMap bars={availableBars} onBarSelect={handleBarChange} />
+          <BarMap
+            bars={availableBars}
+            onBarSelect={handleBarChange}
+            selectedBarId={selectedBar?.id}
+          />
         </div>
 
         {/* Bar Selection */}
